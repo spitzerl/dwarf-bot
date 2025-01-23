@@ -1,7 +1,16 @@
 const fs = require("fs");
 const path = require("path");
 
-const channelsDataPath = path.join(__dirname, "../data/channels.json");
+const dataDir = path.join(__dirname, "../data");
+const channelsDataPath = path.join(dataDir, "channels.json");
+
+// Crée le dossier et le fichier s'ils n'existent pas déjà
+if (!fs.existsSync(dataDir)) {
+	fs.mkdirSync(dataDir);
+}
+if (!fs.existsSync(channelsDataPath)) {
+	fs.writeFileSync(channelsDataPath, "{}");
+}
 
 function getChannelsData() {
 	try {
