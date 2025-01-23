@@ -30,6 +30,11 @@ module.exports = {
 			}
 		}
 
+		// Couleur par défaut du rôle
+		if (!roleColor) {
+			roleColor = "FFFFFF";
+		}
+
 		try {
 			// Création du channel textuel
 			const channel = await guild.channels.create({
