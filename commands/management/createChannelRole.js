@@ -7,8 +7,8 @@ module.exports = {
 		.setName("create")
 		.setDescription("Create text channel and associated role")
 		.addStringOption((option) => option.setName("name").setDescription("Channel and role name").setRequired(true))
-		.addStringOption((option) => option.setName("color").setDescription("Role color").setMinLength(6).setMaxLength(6))
-		.addStringOption((option) => option.setName("emoji").setDescription("Emoji for channel name and role")),
+		.addStringOption((option) => option.setName("color").setDescription("Role color (hex)").setMinLength(6).setMaxLength(6))
+		.addStringOption((option) => option.setName("emoji").setDescription("Channel and role emoji")),
 
 	async execute(interaction) {
 		// Assignation des variables
