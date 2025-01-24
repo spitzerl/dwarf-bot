@@ -12,9 +12,9 @@ module.exports = {
 
 	async execute(interaction) {
 		// Assignation des variables
-		const name = interaction.options.getString("name"); // Corrected option name
-		const roleColor = interaction.options.getString("color");
-		const emoji = interaction.options.getString("emoji"); // Corrected function call
+		let name = interaction.options.getString("name");
+		let roleColor = interaction.options.getString("color") || "FFFFFF"; // Valeur par défaut
+		let emoji = interaction.options.getString("emoji") || ""; // Valeur par défaut
 		const guild = interaction.guild;
 
 		// Vérification des autorisations
@@ -22,8 +22,9 @@ module.exports = {
 			return interaction.reply({ content: "Vous n'avez pas les autorisations nécessaires pour exécuter cette commande.", flags: 64 });
 		}
 
+		let channelsData = getChannelsData();
+
 		// Verifier si le jeu existe déjà
-		const channelsData = getChannelsData();
 		for (const channelData of Object.values(channelsData)) {
 			if (channelData.nameSimplified === toKebabCase(name)) {
 				return interaction.reply({ content: "Ce channel existe déjà.", flags: 64 });
@@ -33,6 +34,11 @@ module.exports = {
 		// Couleur par défaut du rôle
 		if (!roleColor) {
 			roleColor = "FFFFFF";
+		}
+
+		// Couleur par défaut du rôle
+		if (!emoji) {
+			emoji = "🟩";
 		}
 
 		try {
@@ -62,8 +68,6 @@ module.exports = {
 				idChannel: channel.id,
 				idRole: role.id,
 			};
-
-			const channelsData = getChannelsData();
 
 			channelsData[channel.id] = data;
 
