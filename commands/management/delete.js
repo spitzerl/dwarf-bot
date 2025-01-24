@@ -3,6 +3,7 @@ const { getChannelsData, setChannelsData } = require("../../utils/utils");
 const { toKebabCase } = require("../../utils/stringFormatter");
 
 module.exports = {
+	category: "management",
 	data: new SlashCommandBuilder()
 		.setName("delete")
 		.setDescription("Supprimer un channel et son rôle associé")
