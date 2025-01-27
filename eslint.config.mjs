@@ -1,4 +1,5 @@
 const js = require("@eslint/js");
+const eslintPluginPrettierRecommended = require("eslint-plugin-prettier/recommended");
 
 const config = {
   extends: ["plugin:prettier/recommended"],
@@ -51,4 +52,8 @@ const config = {
   },
 };
 
-module.exports = [js.configs.recommended, config];
+module.exports = [
+  js.configs.recommended,
+  config,
+  eslintPluginPrettierRecommended,
+];
