@@ -4,10 +4,10 @@
  * @returns {string} La chaîne de caractères en kebab case et en minuscule.
  */
 function toKebabCase(str) {
-  return str
-    .toLowerCase()
-    .replace(/ /g, "-")
-    .replace(/[^a-z0-9-]/g, "");
+	return str
+		.toLowerCase()
+		.replace(/ /g, '-')
+		.replace(/[^a-z0-9-]/g, '');
 }
 
 module.exports = { toKebabCase };

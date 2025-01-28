@@ -1,12 +1,15 @@
-import eslintJs from '@eslint/js';
+const js = require('@eslint/js');
 
-export default [
-  eslintJs.configs.recommended,
-  {
-    languageOptions: {
-      ecmaVersion: 'latest',
-    },
+module.exports = [
+	js.configs.recommended,
+	{
+		languageOptions: {
+			ecmaVersion: 'latest',
+		},
 		rules: {
+			'no-tabs': 'off',
+			'indent': ['error', 'tab'],
+			'no-mixed-spaces-and-tabs': 'error',
 			'arrow-spacing': ['warn', { before: true, after: true }],
 			'brace-style': ['error', 'stroustrup', { allowSingleLine: true }],
 			'comma-dangle': ['error', 'always-multiline'],
