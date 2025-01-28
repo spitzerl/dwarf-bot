@@ -1,8 +1,4 @@
-const {
-	SlashCommandBuilder,
-	PermissionsBitField,
-	ChannelType,
-} = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const { getChannelsData, setChannelsData } = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
 

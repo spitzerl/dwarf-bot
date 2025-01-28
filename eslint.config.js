@@ -3,9 +3,7 @@ const js = require('@eslint/js');
 module.exports = [
 	js.configs.recommended,
 	{
-		languageOptions: {
-			ecmaVersion: 'latest',
-		},
+		languageOptions: { ecmaVersion: 'latest' },
 		rules: {
 			'no-tabs': 'off',
 			'indent': ['error', 'tab'],
@@ -18,14 +16,12 @@ module.exports = [
 			curly: ['error', 'multi-line', 'consistent'],
 			'dot-location': ['error', 'property'],
 			'handle-callback-err': 'off',
-			indent: ['error', 'tab'],
 			'keyword-spacing': 'error',
 			'max-nested-callbacks': ['error', { max: 4 }],
 			'max-statements-per-line': ['error', { max: 2 }],
 			'no-console': 'off',
 			'no-empty-function': 'error',
 			'no-floating-decimal': 'error',
-			'no-inline-comments': 'error',
 			'no-lonely-if': 'error',
 			'no-multi-spaces': 'error',
 			'no-multiple-empty-lines': ['error', { max: 2, maxEOF: 1, maxBOF: 0 }],
@@ -33,6 +29,8 @@ module.exports = [
 			'no-trailing-spaces': ['error'],
 			'no-var': 'error',
 			'no-undef': 'off',
+			'object-curly-newline': ['error', { multiline: true, consistent: true }],
+			'object-property-newline': ['error', { allowAllPropertiesOnSameLine: true }],
 			'object-curly-spacing': ['error', 'always'],
 			'prefer-const': 'error',
 			quotes: ['error', 'single'],
@@ -48,6 +46,7 @@ module.exports = [
 			'space-unary-ops': 'error',
 			'spaced-comment': 'error',
 			yoda: 'error',
+			'max-len': ['error', { code: 150 }], // Longueur maximale par ligne
 		},
 	},
 ];
