@@ -25,8 +25,13 @@ module.exports = {
       !interaction.memberPermissions.has('MANAGE_ROLES')
 		) {
 			return interaction.reply({
-				content:
-          'Vous n\'avez pas les autorisations nécessaires pour exécuter cette commande.',
+				embeds: [
+					{
+						title: 'Erreur',
+						description: 'Vous n\'avez pas les autorisations nécessaires pour exécuter cette commande.',
+						color: 0xFF0000,
+					},
+				],
 				flags: 64,
 			});
 		}
@@ -45,7 +50,13 @@ module.exports = {
 		// Vérification si le channel existe
 		if (!channelDataToDelete) {
 			return interaction.reply({
-				content: 'Ce channel n\'existe pas.',
+				embeds: [
+					{
+						title: 'Erreur',
+						description: 'Ce channel n\'existe pas.',
+						color: 0xFF0000,
+					},
+				],
 				flags: 64,
 			});
 		}
@@ -68,14 +79,26 @@ module.exports = {
 			setChannelsData(channelsData);
 
 			interaction.reply({
-				content: 'Channel et rôle supprimés avec succès !',
+				embeds: [
+					{
+						title: 'Succès',
+						description: 'Channel et rôle supprimés avec succès !',
+						color: 0x00FF00,
+					},
+				],
 				flags: 64,
 			});
 		}
 		catch (error) {
 			console.error(error);
 			interaction.reply({
-				content: 'Erreur lors de la suppression du channel et du rôle.',
+				embeds: [
+					{
+						title: 'Erreur',
+						description: 'Erreur lors de la suppression du channel et du rôle.',
+						color: 0xFF0000,
+					},
+				],
 				flags: 64,
 			});
 		}
