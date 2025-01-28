@@ -48,7 +48,7 @@ module.exports = {
 						color: 'FF0000',
 					},
 				],
-				ephemeral: true,
+				 flags: 64,
 			});
 		}
 
@@ -65,7 +65,7 @@ module.exports = {
 							color: 'FF0000',
 						},
 					],
-					ephemeral: true,
+					 flags: 64,
 				});
 			}
 		}
@@ -171,7 +171,7 @@ module.exports = {
 										color: 0xFF0000,
 									},
 								],
-								ephemeral: true,
+								 flags: 64,
 							});
 						}
 						else {
@@ -184,7 +184,7 @@ module.exports = {
 										color: 0x00FF00,
 									},
 								],
-								ephemeral: true,
+								 flags: 64,
 							});
 						}
 					}
@@ -197,7 +197,7 @@ module.exports = {
 									color: 0xFF0000,
 								},
 							],
-							ephemeral: true,
+							 flags: 64,
 						});
 					}
 				}
@@ -213,7 +213,7 @@ module.exports = {
 						color: roleColor,
 					},
 				],
-				ephemeral: true,
+				 flags: 64,
 			});
 		}
 	},
