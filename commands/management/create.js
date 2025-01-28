@@ -41,9 +41,14 @@ module.exports = {
       !interaction.memberPermissions.has('MANAGE_ROLES')
 		) {
 			return interaction.reply({
-				content:
-          'Vous n\'avez pas les autorisations nécessaires pour exécuter cette commande.',
-				flags: 64,
+				embeds: [
+					{
+						title: 'Erreur',
+						description: 'Vous n\'avez pas les autorisations nécessaires pour exécuter cette commande.',
+						color: 'FF0000',
+					},
+				],
+				ephemeral: true,
 			});
 		}
 
@@ -53,8 +58,14 @@ module.exports = {
 		for (const channelData of Object.values(channelsData)) {
 			if (channelData.nameSimplified === toKebabCase(name)) {
 				return interaction.reply({
-					content: 'Ce channel existe déjà.',
-					flags: 64,
+					embeds: [
+						{
+							title: 'Erreur',
+							description: 'Ce channel existe déjà.',
+							color: 'FF0000',
+						},
+					],
+					ephemeral: true,
 				});
 			}
 		}
@@ -64,7 +75,7 @@ module.exports = {
 			roleColor = 'FFFFFF';
 		}
 
-		// Couleur par défaut du rôle
+		// Emoji par défaut du rôle
 		if (!emoji) {
 			emoji = '🟩';
 		}
@@ -102,15 +113,38 @@ module.exports = {
 			setChannelsData(channelsData);
 
 			interaction.reply({
-				content: 'Channel et rôle créés avec succès !',
-				flags: 64,
+				embeds: [
+					{
+						title: 'Succès',
+						description: 'Channel et rôle créés avec succès !',
+						color: parseInt(roleColor, 16),
+						fields: [
+							{
+								name: 'Salon',
+								value: `<#${channel.id}>`,
+								inline: true,
+							},
+							{
+								name: 'Rôle',
+								value: `<@&${role.id}>`,
+								inline: true,
+							},
+						],
+					},
+				],
 			});
 		}
 		catch (error) {
 			console.error(error);
 			interaction.reply({
-				content: 'Erreur lors de la création du channel et du rôle.',
-				flags: 64,
+				embeds: [
+					{
+						title: 'Erreur',
+						description: 'Erreur lors de la création du channel et du rôle.',
+						color: roleColor,
+					},
+				],
+				ephemeral: true,
 			});
 		}
 	},
