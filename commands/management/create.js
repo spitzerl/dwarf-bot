@@ -31,14 +31,14 @@ module.exports = {
 	async execute(interaction) {
 		// Assignation des variables
 		const name = interaction.options.getString('name');
-		let roleColor = interaction.options.getString('color') || 'FFFFFF'; // Valeur par défaut
-		let emoji = interaction.options.getString('emoji') || ''; // Valeur par défaut
+		let roleColor = interaction.options.getString('color') || 'FFFFFF';	// Valeur par défaut
+		let emoji = interaction.options.getString('emoji') || '';	// Valeur par défaut
 		const guild = interaction.guild;
 
 		// Vérification des autorisations
 		if (
 			!interaction.memberPermissions.has('MANAGE_CHANNELS') ||
-      !interaction.memberPermissions.has('MANAGE_ROLES')
+            !interaction.memberPermissions.has('MANAGE_ROLES')
 		) {
 			return interaction.reply({
 				embeds: [
@@ -48,7 +48,7 @@ module.exports = {
 						color: 'FF0000',
 					},
 				],
-				ephemeral: true,
+				flags: 64,
 			});
 		}
 
@@ -65,7 +65,7 @@ module.exports = {
 							color: 'FF0000',
 						},
 					],
-					ephemeral: true,
+					flags: 64,
 				});
 			}
 		}
@@ -88,7 +88,11 @@ module.exports = {
 				permissionOverwrites: [
 					{
 						id: interaction.guild.id,
-						allow: [ PermissionsBitField.Flags.ViewChannel ],
+						deny: [PermissionsBitField.Flags.ViewChannel],
+					},
+					{
+						id: role.id,
+						allow: [PermissionsBitField.Flags.ViewChannel],
 					},
 				],
 			});
@@ -116,7 +120,7 @@ module.exports = {
 				embeds: [
 					{
 						title: 'Succès',
-						description: 'Channel et rôle créés avec succès !',
+						description: 'Channel et rôle créés avec succès !\nVous pouvez accéder au channel en cliquant sur le bouton ci-dessous.',
 						color: parseInt(roleColor, 16),
 						fields: [
 							{
@@ -132,6 +136,75 @@ module.exports = {
 						],
 					},
 				],
+				components: [
+					{
+						type: 1,
+						components: [
+							{
+								type: 2,
+								label: 'Prendre le rôle',
+								style: 1,
+								customId: `assign-role-${role.id}`,
+							},
+						],
+					},
+				],
+			});
+
+			const filter = (i) => i.customId === `assign-role-${role.id}` && i.user.id === interaction.user.id;
+
+			const collector = interaction.channel.createMessageComponentCollector({
+				filter,
+				time: 15000,
+			});
+
+			collector.on('collect', (i) => {
+				if (i.customId === `assign-role-${role.id}`) {
+					const roleId = role.id;
+					const roleObj = interaction.guild.roles.cache.get(roleId);
+					const member = interaction.member;
+
+					if (roleObj) {
+						if (member.roles.cache.has(roleId)) {
+							member.roles.remove(roleId);
+							i.reply({
+								embeds: [
+									{
+										title: 'Rôle retiré',
+										description: 'Vous avez été retiré du rôle.',
+										color: 0xFF0000,
+									},
+								],
+								flags: 64,
+							});
+						}
+						else {
+							member.roles.add(roleId);
+							i.reply({
+								embeds: [
+									{
+										title: 'Rôle attribué',
+										description: 'Vous avez été ajouté au rôle.',
+										color: 0x00FF00,
+									},
+								],
+								flags: 64,
+							});
+						}
+					}
+					else {
+						i.reply({
+							embeds: [
+								{
+									title: 'Erreur',
+									description: 'Rôle introuvable.',
+									color: 0xFF0000,
+								},
+							],
+							flags: 64,
+						});
+					}
+				}
 			});
 		}
 		catch (error) {
@@ -144,7 +217,7 @@ module.exports = {
 						color: roleColor,
 					},
 				],
-				ephemeral: true,
+				flags: 64,
 			});
 		}
 	},
