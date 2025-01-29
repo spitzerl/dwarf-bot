@@ -16,9 +16,6 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Build project
-      run: npm run build
-
     - name: Test SSH connectivity
       uses: appleboy/ssh-action@v0.1.7
       with:
@@ -46,4 +43,4 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /home/ubuntu/dwarf-bot
-          pm2 restart discord-bot || pm2 start index.js --name discord-bot
+          pm2 restart dwarf-bot || pm2 start index.js --name dwarf-bot
