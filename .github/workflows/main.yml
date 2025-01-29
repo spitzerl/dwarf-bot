@@ -1,28 +1,49 @@
-name: Deploy Discord Bot to VPS
+name: Deploy to VPS
 
 on:
   push:
     branches:
-      - main  # Déclenche le workflow si vous poussez sur la branche `main`.
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3 # Récupère le code depuis votre repository.
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-    - name: Set up SSH agent
-      uses: webfactory/ssh-agent@v0.5.3 # Pour configurer l'accès SSH.
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build project
+      run: npm run build
+
+    - name: Test SSH connectivity
+      uses: appleboy/ssh-action@v0.1.7
       with:
-        ssh-private-key: ${{ secrets.VPS_SSH_KEY }} # Clé privée configurée dans les Secrets de GitHub.
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          mkdir -p /home/ubuntu/dwarf-bot
+          echo "SSH connection is OK!"
 
-    - name: Deploy to VPS
-      run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_IP }} << 'EOF'
-        cd ~/dwarf-bot
-        git pull origin main  # Met à jour le code source sur le VPS.
-        npm install           # Installe les dépendances.
-        pm2 restart discord-bot # Redémarre votre bot avec PM2.
-        EOF
+    - name: Deploy files to VPS
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: "./"
+        target: "/home/ubuntu/dwarf-bot"
+
+    - name: Restart bot on VPS
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /home/ubuntu/dwarf-bot
+          pm2 restart discord-bot || pm2 start index.js --name discord-bot
