@@ -4,7 +4,7 @@ const path = require('path');
 const dataDir = path.join(__dirname, '../data');
 const channelsDataPath = path.join(dataDir, 'channels.json');
 
-// Crée le dossier et le fichier s'ils n'existent pas déjà
+// Create file and folder if they don't exist
 if (!fs.existsSync(dataDir)) {
 	fs.mkdirSync(dataDir);
 }

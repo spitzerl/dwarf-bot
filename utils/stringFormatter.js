@@ -1,7 +1,7 @@
 /**
- * Convertit une chaîne de caractères en kebab case et en minuscule.
- * @param {string} str - La chaîne de caractères à convertir.
- * @returns {string} La chaîne de caractères en kebab case et en minuscule.
+ * Convert a string to kebab case and in lowercase.
+ * @param {string} str: String to convert.
+ * @returns {string}: Output string.
  */
 function toKebabCase(str) {
 	return str
