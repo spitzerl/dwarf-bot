@@ -15,11 +15,9 @@ module.exports = {
 		),
 
 	async execute(interaction) {
-		// Assignation des variables
 		const name = interaction.options.getString('name');
 		const guild = interaction.guild;
 
-		// Vérification des autorisations
 		if (
 			!interaction.memberPermissions.has('MANAGE_CHANNELS') ||
       !interaction.memberPermissions.has('MANAGE_ROLES')
@@ -36,7 +34,6 @@ module.exports = {
 			});
 		}
 
-		// Récupération des données des channels
 		const channelsData = getChannelsData();
 		let channelDataToDelete = null;
 		for (const channelData of Object.values(channelsData)) {
@@ -47,7 +44,6 @@ module.exports = {
 			}
 		}
 
-		// Vérification si le channel existe
 		if (!channelDataToDelete) {
 			return interaction.reply({
 				embeds: [
@@ -62,19 +58,16 @@ module.exports = {
 		}
 
 		try {
-			// Suppression du channel
 			const channel = guild.channels.cache.get(channelDataToDelete.idChannel);
 			if (channel) {
 				await channel.delete();
 			}
 
-			// Suppression du rôle
 			const role = guild.roles.cache.get(channelDataToDelete.idRole);
 			if (role) {
 				await role.delete();
 			}
 
-			// Mise à jour des données des channels
 			delete channelsData[channelDataToDelete.idChannel];
 			setChannelsData(channelsData);
 

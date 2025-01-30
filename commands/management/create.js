@@ -29,13 +29,11 @@ module.exports = {
 		),
 
 	async execute(interaction) {
-		// Assignation des variables
 		const name = interaction.options.getString('name');
-		let roleColor = interaction.options.getString('color') || 'FFFFFF';	// Valeur par défaut
-		let emoji = interaction.options.getString('emoji') || '';	// Valeur par défaut
+		let roleColor = interaction.options.getString('color') || 'FFFFFF';
+		let emoji = interaction.options.getString('emoji') || '';
 		const guild = interaction.guild;
 
-		// Vérification des autorisations
 		if (
 			!interaction.memberPermissions.has('MANAGE_CHANNELS') ||
             !interaction.memberPermissions.has('MANAGE_ROLES')
@@ -54,7 +52,6 @@ module.exports = {
 
 		const channelsData = getChannelsData();
 
-		// Verifier si le jeu existe déjà
 		for (const channelData of Object.values(channelsData)) {
 			if (channelData.nameSimplified === toKebabCase(name)) {
 				return interaction.reply({
@@ -70,25 +67,21 @@ module.exports = {
 			}
 		}
 
-		// Couleur par défaut du rôle
 		if (!roleColor) {
 			roleColor = 'FFFFFF';
 		}
 
-		// Emoji par défaut du rôle
 		if (!emoji) {
 			emoji = '🟩';
 		}
 
 		try {
-			// Création du rôle
 			const role = await guild.roles.create({
 				name: emoji + '・' + name,
 				color: '#' + roleColor,
 				permissions: [],
 			});
 
-			// Création du channel textuel
 			const channel = await guild.channels.create({
 				name: emoji + '・' + name,
 				type: ChannelType.GuildText,
@@ -104,7 +97,6 @@ module.exports = {
 				],
 			});
 
-			// Stockage des informations dans le fichier JSON
 			const data = {
 				name: name,
 				nameSimplified: toKebabCase(name),
