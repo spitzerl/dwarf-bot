@@ -15,13 +15,12 @@ if (!fs.existsSync(channelsDataPath)) {
 function getChannelsData() {
 	try {
 		const data = fs.readFileSync(channelsDataPath, 'utf8');
+
 		return JSON.parse(data);
-	}
-	catch (error) {
+	} catch (error) {
 		if (error.code === 'ENOENT') {
 			return {};
-		}
-		else {
+		} else {
 			throw error;
 		}
 	}
@@ -33,5 +32,5 @@ function setChannelsData(data) {
 
 module.exports = {
 	getChannelsData,
-	setChannelsData,
+	setChannelsData
 };

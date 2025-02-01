@@ -1,8 +1,4 @@
-const {
-	SlashCommandBuilder,
-	PermissionsBitField,
-	ChannelType,
-} = require('discord.js');
+const { SlashCommandBuilder, PermissionsBitField, ChannelType } = require('discord.js');
 const { getChannelsData, setChannelsData } = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
 
@@ -11,22 +7,9 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('create')
 		.setDescription('Create text channel and associated role')
-		.addStringOption((option) =>
-			option
-				.setName('name')
-				.setDescription('Channel and role name')
-				.setRequired(true),
-		)
-		.addStringOption((option) =>
-			option
-				.setName('color')
-				.setDescription('Role color (hex)')
-				.setMinLength(6)
-				.setMaxLength(6),
-		)
-		.addStringOption((option) =>
-			option.setName('emoji').setDescription('Channel and role emoji'),
-		),
+		.addStringOption((option) => option.setName('name').setDescription('Channel and role name').setRequired(true))
+		.addStringOption((option) => option.setName('color').setDescription('Role color (hex)').setMinLength(6).setMaxLength(6))
+		.addStringOption((option) => option.setName('emoji').setDescription('Channel and role emoji')),
 
 	async execute(interaction) {
 		const name = interaction.options.getString('name');
@@ -34,19 +17,16 @@ module.exports = {
 		let emoji = interaction.options.getString('emoji') || '';
 		const guild = interaction.guild;
 
-		if (
-			!interaction.memberPermissions.has('MANAGE_CHANNELS') ||
-            !interaction.memberPermissions.has('MANAGE_ROLES')
-		) {
+		if (!interaction.memberPermissions.has('MANAGE_CHANNELS') || !interaction.memberPermissions.has('MANAGE_ROLES')) {
 			return interaction.reply({
 				embeds: [
 					{
 						title: 'Erreur',
-						description: 'Vous n\'avez pas les autorisations nécessaires pour exécuter cette commande.',
-						color: 'FF0000',
-					},
+						description: "Vous n'avez pas les autorisations nécessaires pour exécuter cette commande.",
+						color: 'FF0000'
+					}
 				],
-				flags: 64,
+				flags: 64
 			});
 		}
 
@@ -59,10 +39,10 @@ module.exports = {
 						{
 							title: 'Erreur',
 							description: 'Ce channel existe déjà.',
-							color: 'FF0000',
-						},
+							color: 'FF0000'
+						}
 					],
-					flags: 64,
+					flags: 64
 				});
 			}
 		}
@@ -79,7 +59,7 @@ module.exports = {
 			const role = await guild.roles.create({
 				name: emoji + '・' + name,
 				color: '#' + roleColor,
-				permissions: [],
+				permissions: []
 			});
 
 			const channel = await guild.channels.create({
@@ -88,20 +68,20 @@ module.exports = {
 				permissionOverwrites: [
 					{
 						id: interaction.guild.id,
-						deny: [PermissionsBitField.Flags.ViewChannel],
+						deny: [PermissionsBitField.Flags.ViewChannel]
 					},
 					{
 						id: role.id,
-						allow: [PermissionsBitField.Flags.ViewChannel],
-					},
-				],
+						allow: [PermissionsBitField.Flags.ViewChannel]
+					}
+				]
 			});
 
 			const data = {
 				name: name,
 				nameSimplified: toKebabCase(name),
 				idChannel: channel.id,
-				idRole: role.id,
+				idRole: role.id
 			};
 
 			channelsData[channel.id] = data;
@@ -118,15 +98,15 @@ module.exports = {
 							{
 								name: 'Salon',
 								value: `<#${channel.id}>`,
-								inline: true,
+								inline: true
 							},
 							{
 								name: 'Rôle',
 								value: `<@&${role.id}>`,
-								inline: true,
-							},
-						],
-					},
+								inline: true
+							}
+						]
+					}
 				],
 				components: [
 					{
@@ -136,18 +116,18 @@ module.exports = {
 								type: 2,
 								label: 'Prendre le rôle',
 								style: 1,
-								customId: `assign-role-${role.id}`,
-							},
-						],
-					},
-				],
+								customId: `assign-role-${role.id}`
+							}
+						]
+					}
+				]
 			});
 
 			const filter = (i) => i.customId === `assign-role-${role.id}` && i.user.id === interaction.user.id;
 
 			const collector = interaction.channel.createMessageComponentCollector({
 				filter,
-				time: 15000,
+				time: 15000
 			});
 
 			collector.on('collect', (i) => {
@@ -164,53 +144,50 @@ module.exports = {
 									{
 										title: 'Rôle retiré',
 										description: 'Vous avez été retiré du rôle.',
-										color: 0xFF0000,
-									},
+										color: 0xff0000
+									}
 								],
-								flags: 64,
+								flags: 64
 							});
-						}
-						else {
+						} else {
 							member.roles.add(roleId);
 							i.reply({
 								embeds: [
 									{
 										title: 'Rôle attribué',
 										description: 'Vous avez été ajouté au rôle.',
-										color: 0x00FF00,
-									},
+										color: 0x00ff00
+									}
 								],
-								flags: 64,
+								flags: 64
 							});
 						}
-					}
-					else {
+					} else {
 						i.reply({
 							embeds: [
 								{
 									title: 'Erreur',
 									description: 'Rôle introuvable.',
-									color: 0xFF0000,
-								},
+									color: 0xff0000
+								}
 							],
-							flags: 64,
+							flags: 64
 						});
 					}
 				}
 			});
-		}
-		catch (error) {
+		} catch (error) {
 			console.error(error);
 			interaction.reply({
 				embeds: [
 					{
 						title: 'Erreur',
 						description: 'Erreur lors de la création du channel et du rôle.',
-						color: 0xFF0000,
-					},
+						color: 0xff0000
+					}
 				],
-				flags: 64,
+				flags: 64
 			});
 		}
-	},
+	}
 };

@@ -7,30 +7,22 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('delete')
 		.setDescription('Supprimer un channel et son rôle associé')
-		.addStringOption((option) =>
-			option
-				.setName('name')
-				.setDescription('Nom du channel et du rôle à supprimer')
-				.setRequired(true),
-		),
+		.addStringOption((option) => option.setName('name').setDescription('Nom du channel et du rôle à supprimer').setRequired(true)),
 
 	async execute(interaction) {
 		const name = interaction.options.getString('name');
 		const guild = interaction.guild;
 
-		if (
-			!interaction.memberPermissions.has('MANAGE_CHANNELS') ||
-      !interaction.memberPermissions.has('MANAGE_ROLES')
-		) {
+		if (!interaction.memberPermissions.has('MANAGE_CHANNELS') || !interaction.memberPermissions.has('MANAGE_ROLES')) {
 			return interaction.reply({
 				embeds: [
 					{
 						title: 'Erreur',
-						description: 'Vous n\'avez pas les autorisations nécessaires pour exécuter cette commande.',
-						color: 0xFF0000,
-					},
+						description: "Vous n'avez pas les autorisations nécessaires pour exécuter cette commande.",
+						color: 0xff0000
+					}
 				],
-				flags: 64,
+				flags: 64
 			});
 		}
 
@@ -49,11 +41,11 @@ module.exports = {
 				embeds: [
 					{
 						title: 'Erreur',
-						description: 'Ce channel n\'existe pas.',
-						color: 0xFF0000,
-					},
+						description: "Ce channel n'existe pas.",
+						color: 0xff0000
+					}
 				],
-				flags: 64,
+				flags: 64
 			});
 		}
 
@@ -76,24 +68,23 @@ module.exports = {
 					{
 						title: 'Succès',
 						description: 'Channel et rôle supprimés avec succès !',
-						color: 0x00FF00,
-					},
+						color: 0x00ff00
+					}
 				],
-				flags: 64,
+				flags: 64
 			});
-		}
-		catch (error) {
+		} catch (error) {
 			console.error(error);
 			interaction.reply({
 				embeds: [
 					{
 						title: 'Erreur',
 						description: 'Erreur lors de la suppression du channel et du rôle.',
-						color: 0xFF0000,
-					},
+						color: 0xff0000
+					}
 				],
-				flags: 64,
+				flags: 64
 			});
 		}
-	},
+	}
 };
