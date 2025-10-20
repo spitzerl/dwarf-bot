@@ -1,0 +1,36 @@
+{
+  "name": "dwarf-bot",
+  "version": "1.0.0",
+  "description": "Discord bot made to manage channels, roles and events for better user experience",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "deploy-commands": "node deploy-commands.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "discord.js",
+    "role-management",
+    "channel-management"
+  ],
+  "author": "spitzerl",
+  "license": "ISC",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spitzerl/dwarf-bot.git"
+  },
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "eslint": "^9.21.0",
+    "globals": "^15.14.0"
+  }
+}

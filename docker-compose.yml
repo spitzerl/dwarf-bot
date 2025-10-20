@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    environment:
+      - NODE_ENV=production
+      # Les variables TOKEN, CLIENT_ID et GUILD_ID sont lues depuis le fichier .env

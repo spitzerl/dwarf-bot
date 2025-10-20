@@ -1,0 +1,35 @@
+# Fichiers de développement
+node_modules
+npm-debug.log
+.git
+.github
+.gitignore
+.vscode
+.idea
+*.md
+!README.md
+
+# Configuration de développement
+eslint.config.js
+.eslintrc*
+.prettierrc*
+
+# Fichiers d'environnement
+.env
+.env.*
+!.env.example
+
+# Fichiers Docker
+Dockerfile
+dockerfile
+docker-compose.yml
+.dockerignore
+
+# Fichiers de déploiement
+dokploy.yml
+
+# Autres fichiers
+.DS_Store
+*.log
+logs
+*.rpm
