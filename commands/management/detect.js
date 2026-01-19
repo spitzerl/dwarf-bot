@@ -1,6 +1,9 @@
 const {
 	SlashCommandBuilder,
 	PermissionsBitField,
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
 } = require('discord.js');
 const { getChannelsData, setChannelsData, updateRoleSelectionChannel } = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
@@ -221,18 +224,108 @@ module.exports = {
 				});
 			}
 
-			// Si mode preview, ajouter les instructions
+			// Si mode preview, ajouter les instructions et un bouton de confirmation
 			if (preview) {
 				embed.description = matches.length > 0
-					? `**${matches.length}** association(s) prête(s) à être ajoutée(s).\n\nUtilisez \`/detect preview:False\` pour appliquer les changements.`
+					? `**${matches.length}** association(s) prête(s) à être ajoutée(s).`
 					: 'Aucune nouvelle association à ajouter. Les noms des rôles et salons ne correspondent pas ou sont déjà enregistrés.';
 
 				embed.footer = {
 					text: '💡 La détection compare les noms en ignorant la casse, les accents et les emojis',
 				};
+
+				// Si des correspondances ont été trouvées, ajouter un bouton pour confirmer
+				if (matches.length > 0) {
+					const confirmButton = new ButtonBuilder()
+						.setCustomId('detect_confirm')
+						.setLabel('Appliquer les changements')
+						.setStyle(ButtonStyle.Success)
+						.setEmoji('✅');
+
+					const cancelButton = new ButtonBuilder()
+						.setCustomId('detect_cancel')
+						.setLabel('Annuler')
+						.setStyle(ButtonStyle.Secondary)
+						.setEmoji('❌');
+
+					const row = new ActionRowBuilder().addComponents(confirmButton, cancelButton);
+
+					const response = await interaction.editReply({ embeds: [embed], components: [row] });
+
+					// Créer un collector pour les boutons
+					const collector = response.createMessageComponentCollector({
+						filter: (i) => i.user.id === interaction.user.id,
+						time: 60000, // 60 secondes
+					});
+
+					collector.on('collect', async (i) => {
+						if (i.customId === 'detect_confirm') {
+							// Appliquer les changements
+							let addedCount = 0;
+							const currentChannelsData = getChannelsData();
+
+							for (const match of matches) {
+								const data = {
+									name: match.cleanName,
+									nameSimplified: toKebabCase(match.cleanName),
+									idChannel: match.channel.id,
+									idRole: match.role.id,
+									emoji: match.emoji,
+								};
+
+								currentChannelsData[match.channel.id] = data;
+								addedCount++;
+							}
+
+							if (addedCount > 0) {
+								setChannelsData(currentChannelsData);
+
+								// Mettre à jour le menu de sélection de rôles s'il existe
+								updateRoleSelectionChannel(guild)
+									.then(success => {
+										if (success) {
+											console.log('Le menu de sélection a été mis à jour suite à la détection.');
+										}
+									})
+									.catch(error => {
+										console.error('Erreur lors de la mise à jour du menu de sélection:', error);
+									});
+							}
+
+							// Mettre à jour l'embed
+							embed.title = '✅ Détection effectuée';
+							embed.color = 0x00FF00;
+							embed.description = `**${addedCount}** association(s) ajoutée(s) avec succès au fichier channels.json !`;
+							delete embed.footer;
+
+							await i.update({ embeds: [embed], components: [] });
+						}
+						else if (i.customId === 'detect_cancel') {
+							embed.title = '❌ Détection annulée';
+							embed.color = 0xFF0000;
+							embed.description = 'Aucune modification n\'a été effectuée.';
+							delete embed.footer;
+
+							await i.update({ embeds: [embed], components: [] });
+						}
+					});
+
+					collector.on('end', async (collected, reason) => {
+						if (reason === 'time' && collected.size === 0) {
+							embed.title = '⏰ Délai expiré';
+							embed.color = 0xFFA500;
+							embed.description = 'Le délai de confirmation a expiré. Aucune modification n\'a été effectuée.';
+							delete embed.footer;
+
+							await interaction.editReply({ embeds: [embed], components: [] }).catch(() => { });
+						}
+					});
+
+					return;
+				}
 			}
 			else {
-				// Appliquer les changements
+				// Appliquer les changements directement (mode sans preview)
 				let addedCount = 0;
 
 				for (const match of matches) {

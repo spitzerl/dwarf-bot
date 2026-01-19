@@ -38,7 +38,7 @@ module.exports = {
 		// Vérification des autorisations
 		if (
 			!interaction.memberPermissions.has('MANAGE_CHANNELS') ||
-            !interaction.memberPermissions.has('MANAGE_ROLES')
+			!interaction.memberPermissions.has('MANAGE_ROLES')
 		) {
 			return interaction.reply({
 				embeds: [
@@ -140,7 +140,7 @@ module.exports = {
 				embeds: [
 					{
 						title: 'Succès',
-						description: 'Channel et rôle créés avec succès !\nVous pouvez accéder au channel en cliquant sur le bouton ci-dessous.',
+						description: 'Channel et rôle créés avec succès !\nVous pouvez gérer votre rôle avec les boutons ci-dessous.',
 						color: colorInt,
 						fields: [
 							{
@@ -163,61 +163,96 @@ module.exports = {
 							{
 								type: 2,
 								label: 'Prendre le rôle',
-								style: 1,
-								customId: `assign-role-${role.id}`,
+								style: 3, // Vert (Success)
+								customId: `add-role-${role.id}`,
+								emoji: '✅',
+							},
+							{
+								type: 2,
+								label: 'Retirer le rôle',
+								style: 4, // Rouge (Danger)
+								customId: `remove-role-${role.id}`,
+								emoji: '❌',
 							},
 						],
 					},
 				],
 			});
 
-			const filter = (i) => i.customId === `assign-role-${role.id}` && i.user.id === interaction.user.id;
+			const filter = (i) => (i.customId === `add-role-${role.id}` || i.customId === `remove-role-${role.id}`);
 
 			const collector = interaction.channel.createMessageComponentCollector({
 				filter,
-				time: 15000,
+				time: 60000, // 60 secondes
 			});
 
-			collector.on('collect', (i) => {
-				if (i.customId === `assign-role-${role.id}`) {
-					const roleId = role.id;
-					const roleObj = interaction.guild.roles.cache.get(roleId);
-					const member = interaction.member;
+			collector.on('collect', async (i) => {
+				const roleId = role.id;
+				const roleObj = interaction.guild.roles.cache.get(roleId);
+				const member = await interaction.guild.members.fetch(i.user.id);
 
-					if (roleObj) {
-						if (member.roles.cache.has(roleId)) {
-							member.roles.remove(roleId);
-							i.reply({
-								embeds: [
-									{
-										title: 'Rôle retiré',
-										description: 'Vous avez été retiré du rôle.',
-										color: 0xFF0000,
-									},
-								],
-								flags: 64,
-							});
-						}
-						else {
-							member.roles.add(roleId);
-							i.reply({
-								embeds: [
-									{
-										title: 'Rôle attribué',
-										description: 'Vous avez été ajouté au rôle.',
-										color: 0x00FF00,
-									},
-								],
-								flags: 64,
-							});
-						}
-					}
-					else {
+				if (!roleObj) {
+					return i.reply({
+						embeds: [
+							{
+								title: 'Erreur',
+								description: 'Rôle introuvable.',
+								color: 0xFF0000,
+							},
+						],
+						flags: 64,
+					});
+				}
+
+				if (i.customId === `add-role-${role.id}`) {
+					// Ajouter le rôle
+					if (member.roles.cache.has(roleId)) {
 						i.reply({
 							embeds: [
 								{
-									title: 'Erreur',
-									description: 'Rôle introuvable.',
+									title: 'Information',
+									description: 'Vous avez déjà ce rôle.',
+									color: 0xFFA500,
+								},
+							],
+							flags: 64,
+						});
+					}
+					else {
+						await member.roles.add(roleId);
+						i.reply({
+							embeds: [
+								{
+									title: 'Rôle attribué',
+									description: `Vous avez maintenant le rôle <@&${roleId}>.`,
+									color: 0x00FF00,
+								},
+							],
+							flags: 64,
+						});
+					}
+				}
+				else if (i.customId === `remove-role-${role.id}`) {
+					// Retirer le rôle
+					if (!member.roles.cache.has(roleId)) {
+						i.reply({
+							embeds: [
+								{
+									title: 'Information',
+									description: 'Vous n\'avez pas ce rôle.',
+									color: 0xFFA500,
+								},
+							],
+							flags: 64,
+						});
+					}
+					else {
+						await member.roles.remove(roleId);
+						i.reply({
+							embeds: [
+								{
+									title: 'Rôle retiré',
+									description: `Le rôle <@&${roleId}> a été retiré.`,
 									color: 0xFF0000,
 								},
 							],
