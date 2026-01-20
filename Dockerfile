@@ -4,7 +4,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Installer des outils de debug
-RUN apk add --no-cache bash curl
+RUN apk add --no-cache bash curl jq
 
 # Copier les fichiers de dépendances package.json et package-lock.json
 COPY package*.json ./
