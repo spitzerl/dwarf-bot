@@ -5,7 +5,13 @@ const {
 	ActionRowBuilder,
 	StringSelectMenuBuilder,
 } = require('discord.js');
-const { getChannelsData, setChannelsData } = require('../../utils/utils');
+const {
+	getChannelsData,
+	setChannelsData,
+	generateRoleOptions,
+	createRoleSelectionMenu,
+	publishSelectionMenu
+} = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
 const logger = require('../../utils/logger');
 const { logAction } = require('../../utils/discordLogger');
@@ -244,117 +250,5 @@ module.exports = {
 	},
 };
 
-/**
-};
-
-/**
- * Génère les options pour le menu de sélection de rôles
- * @param {Object} channelsData - Les données des channels
- * @returns {Array<Object>} - Les options pour le menu de sélection
- */
-function generateRoleOptions(channelsData) {
-	// Préparer les options de la liste déroulante depuis channels.json
-	const options = [];
-	for (const entry of Object.values(channelsData)) {
-		// Ignorer l'entrée s'il s'agit d'un channel de sélection
-		if (entry.selectChannel === true || entry.type === 'role_selection') continue;
-
-		// Utiliser le nom et emoji stockés dans le JSON
-		const label = entry.name || entry.nameSimplified || 'Inconnu';
-
-		// Préparer l'option pour le select menu
-		const opt = {
-			label: label.slice(0, 25), // Limiter à 25 caractères le label
-			value: (entry.nameSimplified || label).slice(0, 100),
-		};
-
-		// Ajouter l'emoji s'il existe dans le JSON ou essayer de l'extraire du nom si c'est une ancienne entrée
-		if (entry.emoji) {
-			// Utiliser l'emoji stocké dans le JSON
-			opt.emoji = entry.emoji;
-		}
-		else {
-			// Rétrocompatibilité: essayer d'extraire l'emoji du nom si c'est une ancienne entrée
-			const match = /^(.+)・(.+)$/.exec(label);
-			if (match && match[1].length <= 3) {
-				opt.emoji = match[1];
-			}
-		}
-
-		// Pas de description pour simplifier et réduire les erreurs
-		options.push(opt);
-	}
-
-	return options;
-}
-
-/**
- * Crée un composant de menu de sélection pour les rôles
- * @param {Array<Object>} options - Les options pour le menu
- * @returns {ActionRowBuilder} - Le composant de menu prêt à être utilisé
- */
-function createRoleSelectionMenu(options) {
-	// S'assurer qu'il y a au moins une option
-	const validOptions = options.length > 0 ? options : [{
-		label: 'Aucun jeu disponible',
-		value: 'no-games',
-	}];
-
-	// Discord limite le nombre d'options à 25
-	const limitedOptions = validOptions.slice(0, 25);
-
-	// Créer le menu
-	const selectMenu = new StringSelectMenuBuilder()
-		.setCustomId('select_game_roles')
-		.setPlaceholder('Choisissez un ou plusieurs jeux')
-		.setMinValues(1)
-		.setMaxValues(limitedOptions.length) // Pas de limite sur le nombre de rôles
-		.addOptions(limitedOptions);
-
-	return new ActionRowBuilder().addComponents(selectMenu);
-}
-
-// Exporter la fonction pour qu'elle soit utilisable par d'autres modules
-/**
- * @param {Discord.TextChannel} channel - Le channel où publier le menu
- * @param {Object} channelsData - Les données des channels
- * @returns {Promise<void>}
- */
-async function publishSelectionMenu(channel, channelsData) {
-	// Générer les options du menu
-	const options = generateRoleOptions(channelsData);
-
-	// Créer d'abord un message avec l'embed explicatif
-	const embed = {
-		title: 'Sélection des rôles de jeux',
-		description:
-			'Choisissez dans la liste ci-dessous les jeux auxquels vous souhaitez être associé.\n\n' +
-			'Validez pour appliquer. Pour retirer un rôle, rouvrez le menu et désélectionnez-le.',
-		color: 0x00ff00,
-	};
-
-	await channel.send({ embeds: [embed] });
-
-	// Vérifier qu'il y a au moins une option valide
-	if (options.length === 0) {
-		// Message d'information si aucun jeu disponible
-		await channel.send('Aucun jeu n\'a été trouvé dans la configuration. Veuillez ajouter des jeux via la commande /create.');
-	}
-
-	try {
-		// Créer le menu de sélection avec nos options
-		const row = createRoleSelectionMenu(options);
-
-		// Envoyer le message avec uniquement le composant
-		await channel.send({ content: 'Liste des jeux disponibles :', components: [row] });
-	}
-	catch (menuError) {
-		logger.error('Erreur lors de la création du menu de sélection:', menuError);
-		await channel.send('Erreur lors de la création du menu de sélection. Contactez un administrateur.');
-	}
-}
-
-// Exporter le module avec toutes les fonctions nécessaires pour la gestion des menus
-module.exports.publishSelectionMenu = publishSelectionMenu;
-module.exports.generateRoleOptions = generateRoleOptions;
-module.exports.createRoleSelectionMenu = createRoleSelectionMenu;
+// Export module with category
+module.exports.category = 'management';

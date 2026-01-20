@@ -44,14 +44,15 @@ const rest = new REST().setToken(token);
 		);
 
 		// The put method is used to fully refresh all commands.
-		// If GUILD_ID is provided we register guild commands (faster for testing). Otherwise register global commands.
+		const isGlobal = process.argv.includes('--global') || process.argv.includes('-g');
+
 		let data;
-		if (guildId) {
+		if (guildId && !isGlobal) {
 			console.log(`Registering commands to guild ${guildId}`);
 			data = await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
 		}
 		else {
-			console.log('Registering global application commands');
+			console.log('Registering global application commands (this can take up to 1 hour to propagate)');
 			data = await rest.put(Routes.applicationCommands(clientId), { body: commands });
 		}
 

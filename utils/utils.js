@@ -1,8 +1,11 @@
 const fs = require('fs');
 const path = require('path');
+const { StringSelectMenuBuilder, ActionRowBuilder, EmbedBuilder } = require('discord.js');
+const { toKebabCase } = require('./stringFormatter');
 
 const dataDir = path.join(__dirname, '../data');
 const channelsDataPath = path.join(dataDir, 'channels.json');
+const guildsDataPath = path.join(dataDir, 'guilds.json');
 
 // Crée le dossier et le fichier s'ils n'existent pas déjà
 if (!fs.existsSync(dataDir)) {
@@ -10,6 +13,9 @@ if (!fs.existsSync(dataDir)) {
 }
 if (!fs.existsSync(channelsDataPath)) {
 	fs.writeFileSync(channelsDataPath, '{}');
+}
+if (!fs.existsSync(guildsDataPath)) {
+	fs.writeFileSync(guildsDataPath, '{}');
 }
 
 function getChannelsData() {
@@ -29,6 +35,20 @@ function getChannelsData() {
 
 function setChannelsData(data) {
 	fs.writeFileSync(channelsDataPath, JSON.stringify(data, null, 2));
+}
+
+function getGuildsData() {
+	try {
+		const data = fs.readFileSync(guildsDataPath, 'utf8');
+		return JSON.parse(data);
+	}
+	catch (error) {
+		return {};
+	}
+}
+
+function setGuildsData(data) {
+	fs.writeFileSync(guildsDataPath, JSON.stringify(data, null, 2));
 }
 
 /**
@@ -147,9 +167,97 @@ async function updateRoleSelectionChannel(guild) {
 	}
 }
 
+/**
+ * Génère les options pour le menu de sélection de rôles
+ * @param {Object} channelsData - Les données des channels
+ * @returns {Array<Object>} - Les options pour le menu de sélection
+ */
+function generateRoleOptions(channelsData) {
+	const options = [];
+	for (const entry of Object.values(channelsData)) {
+		if (entry.selectChannel === true || entry.type === 'role_selection') continue;
+
+		const label = entry.name || entry.nameSimplified || 'Inconnu';
+		const opt = {
+			label: label.slice(0, 25),
+			value: (entry.nameSimplified || label).slice(0, 100),
+		};
+
+		if (entry.emoji) {
+			opt.emoji = entry.emoji;
+		}
+		else {
+			const match = /^(.+)・(.+)$/.exec(label);
+			if (match && match[1].length <= 3) {
+				opt.emoji = match[1];
+			}
+		}
+		options.push(opt);
+	}
+	return options;
+}
+
+/**
+ * Crée un composant de menu de sélection pour les rôles
+ * @param {Array<Object>} options - Les options pour le menu
+ * @returns {ActionRowBuilder} - Le composant de menu prêt à être utilisé
+ */
+function createRoleSelectionMenu(options) {
+	const validOptions = options.length > 0 ? options : [{
+		label: 'Aucun jeu disponible',
+		value: 'no-games',
+	}];
+	const limitedOptions = validOptions.slice(0, 25);
+	const selectMenu = new StringSelectMenuBuilder()
+		.setCustomId('select_game_roles')
+		.setPlaceholder('Choisissez un ou plusieurs jeux')
+		.setMinValues(1)
+		.setMaxValues(limitedOptions.length)
+		.addOptions(limitedOptions);
+
+	return new ActionRowBuilder().addComponents(selectMenu);
+}
+
+/**
+ * @param {Discord.TextChannel} channel - Le channel où publier le menu
+ * @param {Object} channelsData - Les données des channels
+ * @returns {Promise<void>}
+ */
+async function publishSelectionMenu(channel, channelsData) {
+	const options = generateRoleOptions(channelsData);
+	const embed = new EmbedBuilder()
+		.setTitle('Sélection des rôles de jeux')
+		.setDescription(
+			'Choisissez dans la liste ci-dessous les jeux auxquels vous souhaitez être associé.\n\n' +
+			'Validez pour appliquer. Pour retirer un rôle, rouvrez le menu et désélectionnez-le.',
+		)
+		.setColor(0x00ff00);
+
+	await channel.send({ embeds: [embed] });
+
+	if (options.length === 0) {
+		await channel.send('Aucun jeu n\'a été trouvé dans la configuration. Veuillez ajouter des jeux via la commande /create.');
+	}
+
+	try {
+		const row = createRoleSelectionMenu(options);
+		await channel.send({ content: 'Liste des jeux disponibles :', components: [row] });
+	}
+	catch (menuError) {
+		const logger = require('./logger');
+		logger.error('Erreur lors de la création du menu de sélection:', menuError);
+		await channel.send('Erreur lors de la création du menu de sélection. Contactez un administrateur.');
+	}
+}
+
 module.exports = {
 	getChannelsData,
 	setChannelsData,
+	getGuildsData,
+	setGuildsData,
 	findRoleSelectionChannel,
 	updateRoleSelectionChannel,
+	generateRoleOptions,
+	createRoleSelectionMenu,
+	publishSelectionMenu,
 };

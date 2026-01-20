@@ -32,6 +32,8 @@ module.exports = {
 		),
 
 	async execute(interaction) {
+		await interaction.deferReply();
+
 		// Assignation des variables
 		const name = interaction.options.getString('name');
 		let roleColor = interaction.options.getString('color') || 'FFFFFF';	// Valeur par défaut
@@ -40,9 +42,8 @@ module.exports = {
 
 		// Validation du nom
 		if (!isValidDiscordName(name)) {
-			return interaction.reply({
+			return interaction.editReply({
 				content: 'Le nom du channel est invalide (doit être entre 1 et 100 caractères).',
-				flags: 64,
 			});
 		}
 
@@ -52,8 +53,8 @@ module.exports = {
 
 		// Verifier si le jeu existe déjà
 		for (const channelData of Object.values(channelsData)) {
-			if (channelData.nameSimplified === toKebabCase(name)) {
-				return interaction.reply({
+			if (channelData.nameSimplified === toKebabCase(cleanName)) {
+				return interaction.editReply({
 					embeds: [
 						{
 							title: 'Erreur',
@@ -61,7 +62,6 @@ module.exports = {
 							color: 0xFF0000,
 						},
 					],
-					flags: 64,
 				});
 			}
 		}
@@ -83,14 +83,14 @@ module.exports = {
 
 			// Création du rôle (utilise `color` car il semble que `colors` n'est pas supporté)
 			const role = await guild.roles.create({
-				name: emoji + '・' + name,
+				name: emoji + '・' + cleanName,
 				color: validColor,
 				permissions: [],
 			});
 
 			// Création du channel textuel
 			const channel = await guild.channels.create({
-				name: emoji + '・' + name,
+				name: emoji + '・' + cleanName,
 				type: ChannelType.GuildText,
 				permissionOverwrites: [
 					{
@@ -106,8 +106,8 @@ module.exports = {
 
 			// Stockage des informations dans le fichier JSON
 			const data = {
-				name: name,
-				nameSimplified: toKebabCase(name),
+				name: cleanName,
+				nameSimplified: toKebabCase(cleanName),
 				idChannel: channel.id,
 				idRole: role.id,
 				emoji: emoji, // Ajout de l'emoji dans le JSON
@@ -132,7 +132,7 @@ module.exports = {
 			const colorInt = roleColor && roleColor.match(/^[0-9A-Fa-f]{6}$/) ?
 				parseInt(roleColor, 16) : 0x00FF00; // Valeur par défaut vert si conversion impossible
 
-			interaction.reply({
+			await interaction.editReply({
 				embeds: [
 					{
 						title: 'Succès',
@@ -259,17 +259,18 @@ module.exports = {
 			});
 		}
 		catch (error) {
-			logger.error(`Erreur lors de la création du jeu ${name}:`, error);
-			interaction.reply({
-				embeds: [
-					{
-						title: 'Erreur',
-						description: 'Erreur lors de la création du channel et du rôle.',
-						color: 0xFF0000,
-					},
-				],
-				flags: 64,
-			});
+			logger.error(`Erreur lors de la création du jeu ${cleanName}:`, error);
+			const errorEmbed = {
+				title: 'Erreur',
+				description: 'Erreur lors de la création du channel et du rôle.',
+				color: 0xFF0000,
+			};
+
+			if (interaction.deferred || interaction.replied) {
+				await interaction.editReply({ embeds: [errorEmbed] });
+			} else {
+				await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+			}
 		}
 	},
 };
