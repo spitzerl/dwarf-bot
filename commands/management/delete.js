@@ -1,6 +1,9 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getChannelsData, setChannelsData, updateRoleSelectionChannel } = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
+const logger = require('../../utils/logger');
+const { logAction } = require('../../utils/discordLogger');
+const { sanitizeString } = require('../../utils/validator');
 
 module.exports = {
 	category: 'management',
@@ -16,32 +19,14 @@ module.exports = {
 
 	async execute(interaction) {
 		// Assignation des variables
-		const name = interaction.options.getString('name');
-		const guild = interaction.guild;
-
-		// Vérification des autorisations
-		if (
-			!interaction.memberPermissions.has('MANAGE_CHANNELS') ||
-      !interaction.memberPermissions.has('MANAGE_ROLES')
-		) {
-			return interaction.reply({
-				embeds: [
-					{
-						title: 'Erreur',
-						description: 'Vous n\'avez pas les autorisations nécessaires pour exécuter cette commande.',
-						color: 0xFF0000,
-					},
-				],
-				flags: 64,
-			});
-		}
+		const cleanName = sanitizeString(name);
 
 		// Récupération des données des channels
 		const channelsData = getChannelsData();
 		let channelDataToDelete = null;
 		for (const channelData of Object.values(channelsData)) {
 			// Conversion du nom en kebab case
-			if (channelData.nameSimplified === toKebabCase(name)) {
+			if (channelData.nameSimplified === toKebabCase(cleanName)) {
 				channelDataToDelete = channelData;
 				break;
 			}
@@ -82,11 +67,11 @@ module.exports = {
 			updateRoleSelectionChannel(guild)
 				.then(success => {
 					if (success) {
-						console.log('Le menu de sélection a été mis à jour suite à la suppression du jeu.');
+						logger.info('Le menu de sélection a été mis à jour suite à la suppression du jeu.');
 					}
 				})
 				.catch(error => {
-					console.error('Erreur lors de la mise à jour du menu de sélection:', error);
+					logger.error('Erreur lors de la mise à jour du menu de sélection:', error);
 				});
 
 			interaction.reply({
@@ -101,7 +86,7 @@ module.exports = {
 			});
 		}
 		catch (error) {
-			console.error(error);
+			logger.error(`Erreur lors de la suppression du jeu ${cleanName}:`, error);
 			interaction.reply({
 				embeds: [
 					{

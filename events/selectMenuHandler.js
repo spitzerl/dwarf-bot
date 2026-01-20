@@ -1,5 +1,7 @@
 const { Events } = require('discord.js');
 const { getChannelsData } = require('../utils/utils');
+const logger = require('../utils/logger');
+const { logAction } = require('../utils/discordLogger');
 
 module.exports = {
 	name: Events.InteractionCreate,
@@ -15,7 +17,7 @@ module.exports = {
 
 				// Récupérer les valeurs sélectionnées
 				const selectedValues = interaction.values;
-				console.log(`Utilisateur: ${interaction.user.tag} a sélectionné: ${selectedValues.join(', ')}`);
+				logger.info(`Utilisateur: ${interaction.user.tag} a sélectionné: ${selectedValues.join(', ')}`);
 
 				// Si l'utilisateur n'est pas un membre du serveur, on ne peut pas gérer ses rôles
 				if (!interaction.member) {
@@ -69,7 +71,7 @@ module.exports = {
 							}
 						}
 						catch (error) {
-							console.error(`Erreur lors de l'ajout du rôle ${channelEntry.idRole}:`, error);
+							logger.error(`Erreur lors de l'ajout du rôle ${channelEntry.idRole}:`, error);
 							rolesMissing.push(channelEntry.name || value);
 						}
 					}
@@ -79,12 +81,12 @@ module.exports = {
 				}
 
 				// Retirer les rôles de jeux que l'utilisateur possède mais qui ne sont plus sélectionnés
-				console.log(`Vérification des rôles à retirer pour ${interaction.user.tag}...`);
+				logger.info(`Vérification des rôles à retirer pour ${interaction.user.tag}...`);
 
 				// Récupérer les rôles actuels de l'utilisateur et les convertir en array pour faciliter le debug
 				const userRoles = Array.from(interaction.member.roles.cache.keys());
-				console.log(`Rôles actuels: ${userRoles.join(', ')}`);
-				console.log(`Rôles sélectionnés: ${selectedRoleIds.join(', ')}`);
+				logger.debug(`Rôles actuels: ${userRoles.join(', ')}`);
+				logger.debug(`Rôles sélectionnés: ${selectedRoleIds.join(', ')}`);
 
 				// Traiter chaque rôle de jeu
 				for (const roleId of gameRoles.keys()) {
@@ -92,20 +94,20 @@ module.exports = {
 					if (interaction.member.roles.cache.has(roleId) && !selectedRoleIds.includes(roleId)) {
 						const role = interaction.guild.roles.cache.get(roleId);
 						if (role) {
-							console.log(`Tentative de retrait du rôle ${role.name} (${roleId}) pour ${interaction.user.tag}`);
+							logger.info(`Tentative de retrait du rôle ${role.name} (${roleId}) pour ${interaction.user.tag}`);
 
 							try {
 								// Retirer le rôle et attendre que l'opération se termine
 								await interaction.member.roles.remove(roleId);
-								console.log(`✅ Rôle ${role.name} retiré avec succès`);
+								logger.info(`✅ Rôle ${role.name} retiré avec succès`);
 								rolesRemoved.push(role.name);
 							}
 							catch (roleError) {
-								console.error(`❌ Erreur lors du retrait du rôle ${role.name}:`, roleError);
+								logger.error(`❌ Erreur lors du retrait du rôle ${role.name}:`, roleError);
 							}
 						}
 						else {
-							console.log(`Rôle ${roleId} introuvable dans le serveur`);
+							logger.warn(`Rôle ${roleId} introuvable dans le serveur`);
 						}
 					}
 				}
@@ -136,14 +138,14 @@ module.exports = {
 				// Rafraîchir les rôles du membre après les modifications
 				try {
 					await interaction.member.fetch(true);
-					console.log(`Rôles mis à jour pour ${interaction.user.tag}`);
+					logger.info(`Rôles mis à jour pour ${interaction.user.tag}`);
 				}
 				catch (fetchError) {
-					console.error('Erreur lors du rafraîchissement des rôles:', fetchError);
+					logger.error('Erreur lors du rafraîchissement des rôles:', fetchError);
 				}
 			}
 			catch (error) {
-				console.error('Erreur lors du traitement de la sélection de rôle:', error);
+				logger.error('Erreur lors du traitement de la sélection de rôle:', error);
 				if (interaction.deferred) {
 					await interaction.editReply({
 						content: 'Une erreur est survenue lors du traitement de votre sélection.',

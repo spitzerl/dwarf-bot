@@ -7,6 +7,8 @@ const {
 } = require('discord.js');
 const { getChannelsData, setChannelsData, updateRoleSelectionChannel } = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
+const logger = require('../../utils/logger');
+const { logAction } = require('../../utils/discordLogger');
 
 /**
  * Normalise une chaîne pour la comparaison (ignore la casse et les caractères spéciaux)
@@ -84,23 +86,6 @@ module.exports = {
 		),
 
 	async execute(interaction) {
-		// Vérification des autorisations
-		if (
-			!interaction.memberPermissions.has(PermissionsBitField.Flags.ManageChannels) ||
-			!interaction.memberPermissions.has(PermissionsBitField.Flags.ManageRoles)
-		) {
-			return interaction.reply({
-				embeds: [
-					{
-						title: 'Erreur',
-						description: 'Vous n\'avez pas les autorisations nécessaires pour exécuter cette commande.',
-						color: 0xFF0000,
-					},
-				],
-				ephemeral: true,
-			});
-		}
-
 		// Par défaut, on est en mode preview
 		const preview = interaction.options.getBoolean('preview') ?? true;
 		const guild = interaction.guild;
@@ -284,11 +269,11 @@ module.exports = {
 								updateRoleSelectionChannel(guild)
 									.then(success => {
 										if (success) {
-											console.log('Le menu de sélection a été mis à jour suite à la détection.');
+											logger.info('Le menu de sélection a été mis à jour suite à la détection.');
 										}
 									})
 									.catch(error => {
-										console.error('Erreur lors de la mise à jour du menu de sélection:', error);
+										logger.error('Erreur lors de la mise à jour du menu de sélection:', error);
 									});
 							}
 
@@ -348,11 +333,11 @@ module.exports = {
 					updateRoleSelectionChannel(guild)
 						.then(success => {
 							if (success) {
-								console.log('Le menu de sélection a été mis à jour suite à la détection.');
+								logger.info('Le menu de sélection a été mis à jour suite à la détection.');
 							}
 						})
 						.catch(error => {
-							console.error('Erreur lors de la mise à jour du menu de sélection:', error);
+							logger.error('Erreur lors de la mise à jour du menu de sélection:', error);
 						});
 
 					embed.description = `**${addedCount}** association(s) ajoutée(s) avec succès !`;
@@ -365,7 +350,7 @@ module.exports = {
 			return interaction.editReply({ embeds: [embed] });
 		}
 		catch (error) {
-			console.error('Erreur lors de la détection:', error);
+			logger.error('Erreur lors de la détection:', error);
 			return interaction.editReply({
 				embeds: [
 					{

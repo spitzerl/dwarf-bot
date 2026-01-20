@@ -7,6 +7,9 @@ const {
 } = require('discord.js');
 const { getChannelsData, setChannelsData } = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
+const logger = require('../../utils/logger');
+const { logAction } = require('../../utils/discordLogger');
+const { sanitizeString, isValidDiscordName } = require('../../utils/validator');
 
 module.exports = {
 	category: 'management',
@@ -43,13 +46,6 @@ module.exports = {
 		),
 
 	async execute(interaction) {
-		// Vérifications d'autorisation (admin / manage channels)
-		if (!interaction.memberPermissions.has(PermissionsBitField.Flags.ManageChannels)) {
-			return interaction.reply({
-				content: 'Vous n\'avez pas la permission de gérer les channels.',
-				ephemeral: true,
-			});
-		}
 
 		const subcommand = interaction.options.getSubcommand();
 		const guild = interaction.guild;
@@ -57,7 +53,13 @@ module.exports = {
 
 		// COMMANDE CREATE - Création d'un nouveau channel de sélection
 		if (subcommand === 'create') {
-			const name = interaction.options.getString('name');
+			const rawName = interaction.options.getString('name');
+
+			if (!isValidDiscordName(rawName)) {
+				return interaction.reply({ content: 'Nom de channel invalide.', ephemeral: true });
+			}
+
+			const name = sanitizeString(rawName);
 
 			// Vérifier si un channel avec le même nom simplifié existe déjà
 			const nameSimplified = toKebabCase(name);
@@ -106,7 +108,7 @@ module.exports = {
 				return interaction.reply({ content: `Channel créé : <#${channel.id}> et menu posté.` });
 			}
 			catch (error) {
-				console.error('Erreur lors de la création du channel:', error);
+				logger.error('Erreur lors de la création du channel de sélection:', error);
 				return interaction.reply({
 					content: 'Erreur lors de la création du channel.',
 					ephemeral: true,
@@ -172,7 +174,7 @@ module.exports = {
 				});
 			}
 			catch (error) {
-				console.error('Erreur lors de la suppression du channel:', error);
+				logger.error('Erreur lors de la suppression du channel de sélection:', error);
 				return interaction.reply({
 					content: 'Une erreur est survenue lors de la suppression du channel.',
 					ephemeral: true,
@@ -221,7 +223,7 @@ module.exports = {
 				// Supprimer tous les messages récupérés
 				for (const message of messages.values()) {
 					await message.delete().catch(error => {
-						console.error(`Erreur lors de la suppression d'un message: ${error}`);
+						logger.error(`Erreur lors de la suppression d'un message dans le channel de sélection: ${error}`);
 					});
 				}
 
@@ -233,7 +235,7 @@ module.exports = {
 				});
 			}
 			catch (error) {
-				console.error('Erreur lors de la mise à jour du channel:', error);
+				logger.error('Erreur lors de la mise à jour du channel de sélection:', error);
 				return interaction.editReply({
 					content: 'Une erreur est survenue lors de la mise à jour du channel.',
 				});
@@ -347,7 +349,7 @@ async function publishSelectionMenu(channel, channelsData) {
 		await channel.send({ content: 'Liste des jeux disponibles :', components: [row] });
 	}
 	catch (menuError) {
-		console.error('Erreur lors de la création du menu:', menuError);
+		logger.error('Erreur lors de la création du menu de sélection:', menuError);
 		await channel.send('Erreur lors de la création du menu de sélection. Contactez un administrateur.');
 	}
 }

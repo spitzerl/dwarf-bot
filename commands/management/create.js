@@ -5,6 +5,9 @@ const {
 } = require('discord.js');
 const { getChannelsData, setChannelsData, updateRoleSelectionChannel } = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
+const logger = require('../../utils/logger');
+const { logAction } = require('../../utils/discordLogger');
+const { sanitizeString, isValidDiscordName } = require('../../utils/validator');
 
 module.exports = {
 	category: 'management',
@@ -35,22 +38,15 @@ module.exports = {
 		let emoji = interaction.options.getString('emoji') || '';	// Valeur par défaut
 		const guild = interaction.guild;
 
-		// Vérification des autorisations
-		if (
-			!interaction.memberPermissions.has('MANAGE_CHANNELS') ||
-			!interaction.memberPermissions.has('MANAGE_ROLES')
-		) {
+		// Validation du nom
+		if (!isValidDiscordName(name)) {
 			return interaction.reply({
-				embeds: [
-					{
-						title: 'Erreur',
-						description: 'Vous n\'avez pas les autorisations nécessaires pour exécuter cette commande.',
-						color: 0xFF0000,
-					},
-				],
+				content: 'Le nom du channel est invalide (doit être entre 1 et 100 caractères).',
 				flags: 64,
 			});
 		}
+
+		const cleanName = sanitizeString(name);
 
 		const channelsData = getChannelsData();
 
@@ -125,11 +121,11 @@ module.exports = {
 			updateRoleSelectionChannel(guild)
 				.then(success => {
 					if (success) {
-						console.log('Le menu de sélection a été mis à jour suite à la création du nouveau jeu.');
+						logger.info('Le menu de sélection a été mis à jour suite à la création du nouveau jeu.');
 					}
 				})
 				.catch(error => {
-					console.error('Erreur lors de la mise à jour du menu de sélection:', error);
+					logger.error('Erreur lors de la mise à jour du menu de sélection:', error);
 				});
 
 			// S'assurer que roleColor est une chaîne valide avant la conversion
@@ -263,7 +259,7 @@ module.exports = {
 			});
 		}
 		catch (error) {
-			console.error(error);
+			logger.error(`Erreur lors de la création du jeu ${name}:`, error);
 			interaction.reply({
 				embeds: [
 					{
