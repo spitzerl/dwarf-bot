@@ -165,12 +165,50 @@ module.exports = {
 				}
 			}
 
-			// Construire la réponse
-			const embed = {
+			// TEST: Inject many mock associations
+			for (let i = 0; i < 50; i++) {
+				matches.push({
+					channel: { id: `channel_${i}`, name: `Channel ${i}` },
+					role: { id: `role_${i}`, name: `Role ${i}` },
+					cleanName: `Test ${i}`,
+					emoji: '🧪'
+				});
+			}
+
+			// Construire les embeds
+			const embeds = [];
+			const baseEmbed = {
 				title: preview ? '🔍 Aperçu de la détection' : '✅ Détection effectuée',
 				color: preview ? 0x3498DB : 0x00FF00,
-				fields: [],
 				timestamp: new Date().toISOString(),
+			};
+
+			let currentEmbed = { ...baseEmbed, fields: [] };
+			embeds.push(currentEmbed);
+
+			const addField = (name, text) => {
+				// Discord limits: 1024 characters per field value, 6000 total across all embeds in a message
+				const lines = text.split('\n');
+				let currentFieldValue = '';
+
+				for (const line of lines) {
+					if (!line) continue;
+					if ((currentFieldValue + line).length > 1000) {
+						currentEmbed.fields.push({ name: name + ' (suite)', value: currentFieldValue });
+						currentFieldValue = '';
+
+						// Vérifier si l'embed actuel est trop plein (limite de 25 champs ou ~5000 caractères pour être sûr)
+						if (currentEmbed.fields.length >= 20) {
+							currentEmbed = { ...baseEmbed, fields: [] };
+							embeds.push(currentEmbed);
+						}
+					}
+					currentFieldValue += line + '\n';
+				}
+
+				if (currentFieldValue) {
+					currentEmbed.fields.push({ name: name, value: currentFieldValue });
+				}
 			};
 
 			// Ajouter les correspondances trouvées
@@ -179,14 +217,10 @@ module.exports = {
 				for (const match of matches) {
 					matchesText += `• <#${match.channel.id}> ↔ <@&${match.role.id}>\n`;
 				}
-
-				embed.fields.push({
-					name: `🆕 Nouvelles associations trouvées (${matches.length})`,
-					value: matchesText.slice(0, 1024) || 'Aucune',
-				});
+				addField(`🆕 Nouvelles associations trouvées (${matches.length})`, matchesText);
 			}
 			else {
-				embed.fields.push({
+				currentEmbed.fields.push({
 					name: '🆕 Nouvelles associations',
 					value: 'Aucune nouvelle association trouvée.',
 				});
@@ -195,32 +229,31 @@ module.exports = {
 			// Ajouter les éléments déjà suivis
 			if (alreadyTracked.length > 0) {
 				let trackedText = '';
-				for (const item of alreadyTracked.slice(0, 10)) { // Limiter à 10
+				for (const item of alreadyTracked) {
 					trackedText += `• <#${item.channel.id}>`;
 					if (item.role) {
 						trackedText += ` ↔ <@&${item.role.id}>`;
 					}
 					trackedText += '\n';
 				}
-				if (alreadyTracked.length > 10) {
-					trackedText += `... et ${alreadyTracked.length - 10} autres`;
-				}
-
-				embed.fields.push({
-					name: `📋 Déjà enregistrés (${alreadyTracked.length})`,
-					value: trackedText || 'Aucun',
-				});
+				addField(`📋 Déjà enregistrés (${alreadyTracked.length})`, trackedText);
 			}
+
+			// Limiter à 10 embeds (limite Discord par message)
+			const finalEmbeds = embeds.slice(0, 10);
+
 
 			// Si mode preview, ajouter les instructions et un bouton de confirmation
 			if (preview) {
-				embed.description = matches.length > 0
+				const firstEmbed = finalEmbeds[0];
+				firstEmbed.description = matches.length > 0
 					? `**${matches.length}** association(s) prête(s) à être ajoutée(s).`
 					: 'Aucune nouvelle association à ajouter. Les noms des rôles et salons ne correspondent pas ou sont déjà enregistrés.';
 
-				embed.footer = {
+				firstEmbed.footer = {
 					text: '💡 La détection compare les noms en ignorant la casse, les accents et les emojis',
 				};
+
 
 				// Si des correspondances ont été trouvées, ajouter un bouton pour confirmer
 				if (matches.length > 0) {
@@ -238,7 +271,7 @@ module.exports = {
 
 					const row = new ActionRowBuilder().addComponents(confirmButton, cancelButton);
 
-					const response = await interaction.editReply({ embeds: [embed], components: [row] });
+					const response = await interaction.editReply({ embeds: finalEmbeds, components: [row] });
 
 					// Créer un collector pour les boutons
 					const collector = response.createMessageComponentCollector({
@@ -282,31 +315,37 @@ module.exports = {
 							}
 
 							// Mettre à jour l'embed
-							embed.title = '✅ Détection effectuée';
-							embed.color = 0x00FF00;
-							embed.description = `**${addedCount}** association(s) ajoutée(s) avec succès au fichier channels.json !`;
-							delete embed.footer;
+							const resultEmbed = {
+								title: '✅ Détection effectuée',
+								color: 0x00FF00,
+								description: `**${addedCount}** association(s) ajoutée(s) avec succès au fichier channels.json !`,
+								timestamp: new Date().toISOString(),
+							};
 
-							await i.update({ embeds: [embed], components: [] });
+							await i.update({ embeds: [resultEmbed], components: [] });
 						}
 						else if (i.customId === 'detect_cancel') {
-							embed.title = '❌ Détection annulée';
-							embed.color = 0xFF0000;
-							embed.description = 'Aucune modification n\'a été effectuée.';
-							delete embed.footer;
+							const cancelEmbed = {
+								title: '❌ Détection annulée',
+								color: 0xFF0000,
+								description: 'Aucune modification n\'a été effectuée.',
+								timestamp: new Date().toISOString(),
+							};
 
-							await i.update({ embeds: [embed], components: [] });
+							await i.update({ embeds: [cancelEmbed], components: [] });
 						}
 					});
 
 					collector.on('end', async (collected, reason) => {
 						if (reason === 'time' && collected.size === 0) {
-							embed.title = '⏰ Délai expiré';
-							embed.color = 0xFFA500;
-							embed.description = 'Le délai de confirmation a expiré. Aucune modification n\'a été effectuée.';
-							delete embed.footer;
+							const timeoutEmbed = {
+								title: '⏰ Délai expiré',
+								color: 0xFFA500,
+								description: 'Le délai de confirmation a expiré. Aucune modification n\'a été effectuée.',
+								timestamp: new Date().toISOString(),
+							};
 
-							await interaction.editReply({ embeds: [embed], components: [] }).catch(() => { });
+							await interaction.editReply({ embeds: [timeoutEmbed], components: [] }).catch(() => { });
 						}
 					});
 
@@ -345,14 +384,14 @@ module.exports = {
 							logger.error('Erreur lors de la mise à jour du menu de sélection:', error);
 						});
 
-					embed.description = `**${addedCount}** association(s) ajoutée(s) avec succès !`;
+					finalEmbeds[0].description = `**${addedCount}** association(s) ajoutée(s) avec succès !`;
 				}
 				else {
-					embed.description = 'Aucune nouvelle association à ajouter.';
+					finalEmbeds[0].description = 'Aucune nouvelle association à ajouter.';
 				}
 			}
 
-			return interaction.editReply({ embeds: [embed] });
+			return interaction.editReply({ embeds: finalEmbeds });
 		}
 		catch (error) {
 			logger.error('Erreur lors de la détection:', error);
