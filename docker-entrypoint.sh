@@ -63,6 +63,23 @@ else
   echo "channels.json créé."
 fi
 
+# Afficher l'état de guilds.json s'il existe
+if [ -f "/app/data/guilds.json" ]; then
+  echo "guilds.json existe:"
+  cat /app/data/guilds.json | jq . || echo "Format JSON invalide"
+else
+  echo "guilds.json n'existe pas encore"
+  echo "Création d'un fichier guilds.json vide..."
+  echo "{}" > /app/data/guilds.json
+  echo "guilds.json créé."
+fi
+
+echo "========================================"
+echo "Enregistrement des commandes Discord..."
+echo "========================================"
+# Déployer les commandes globalement au démarrage
+npm run deploy-global || echo "AVERTISSEMENT: L'enregistrement des commandes a échoué, mais le bot va quand même tenter de démarrer."
+
 echo "========================================"
 echo "Démarrage du bot Discord..."
 echo "========================================"
