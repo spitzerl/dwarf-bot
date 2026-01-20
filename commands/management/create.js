@@ -51,14 +51,14 @@ module.exports = {
 
 		const channelsData = getChannelsData();
 
-		// Verifier si le jeu existe déjà
+		// Verifier si le jeu existe déjà sur ce serveur
 		for (const channelData of Object.values(channelsData)) {
-			if (channelData.nameSimplified === toKebabCase(cleanName)) {
+			if (channelData.guildId === guild.id && channelData.nameSimplified === toKebabCase(cleanName)) {
 				return interaction.editReply({
 					embeds: [
 						{
 							title: 'Erreur',
-							description: 'Ce channel existe déjà.',
+							description: 'Ce channel existe déjà sur ce serveur.',
 							color: 0xFF0000,
 						},
 					],

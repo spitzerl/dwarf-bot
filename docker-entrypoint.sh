@@ -75,6 +75,11 @@ else
 fi
 
 echo "========================================"
+echo "Migration des données..."
+echo "========================================"
+node migrate.js || echo "AVERTISSEMENT: La migration des données a échoué."
+
+echo "========================================"
 echo "Enregistrement des commandes Discord..."
 echo "========================================"
 # Déployer les commandes globalement au démarrage

@@ -69,12 +69,12 @@ module.exports = {
 
 			const name = sanitizeString(rawName);
 
-			// Vérifier si un channel avec le même nom simplifié existe déjà
+			// Vérifier si un channel avec le même nom simplifié existe déjà sur ce serveur
 			const nameSimplified = toKebabCase(name);
 			for (const c of Object.values(channelsData)) {
-				if (c.nameSimplified === nameSimplified) {
+				if (c.guildId === guild.id && c.nameSimplified === nameSimplified) {
 					return interaction.reply({
-						content: 'Un channel avec ce nom existe déjà (référencé dans channels.json).',
+						content: 'Un channel avec ce nom existe déjà sur ce serveur.',
 						ephemeral: true,
 					});
 				}

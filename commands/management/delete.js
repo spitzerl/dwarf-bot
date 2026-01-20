@@ -19,26 +19,28 @@ module.exports = {
 
 	async execute(interaction) {
 		// Assignation des variables
+		const name = interaction.options.getString('name');
+		const guild = interaction.guild;
 		const cleanName = sanitizeString(name);
 
 		// Récupération des données des channels
 		const channelsData = getChannelsData();
 		let channelDataToDelete = null;
 		for (const channelData of Object.values(channelsData)) {
-			// Conversion du nom en kebab case
-			if (channelData.nameSimplified === toKebabCase(cleanName)) {
+			// Vérifier le nom simplifié ET le serveur (guildId)
+			if (channelData.guildId === guild.id && channelData.nameSimplified === toKebabCase(cleanName)) {
 				channelDataToDelete = channelData;
 				break;
 			}
 		}
 
-		// Vérification si le channel existe
+		// Vérification si le channel existe sur ce serveur
 		if (!channelDataToDelete) {
 			return interaction.reply({
 				embeds: [
 					{
 						title: 'Erreur',
-						description: 'Ce channel n\'existe pas.',
+						description: 'Ce channel n\'existe pas sur ce serveur.',
 						color: 0xFF0000,
 					},
 				],
@@ -74,7 +76,7 @@ module.exports = {
 					logger.error('Erreur lors de la mise à jour du menu de sélection:', error);
 				});
 
-			interaction.reply({
+			return interaction.reply({
 				embeds: [
 					{
 						title: 'Succès',
@@ -87,7 +89,7 @@ module.exports = {
 		}
 		catch (error) {
 			logger.error(`Erreur lors de la suppression du jeu ${cleanName}:`, error);
-			interaction.reply({
+			return interaction.reply({
 				embeds: [
 					{
 						title: 'Erreur',
