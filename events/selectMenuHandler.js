@@ -10,7 +10,8 @@ module.exports = {
 		if (!interaction.isStringSelectMenu()) return;
 
 		// Vérifier s'il s'agit de notre menu de sélection de rôles
-		if (interaction.customId === 'select_game_roles') {
+		// Vérifier s'il s'agit de notre menu de sélection de rôles (gère aussi les menus paginés select_game_roles_0, etc.)
+		if (interaction.customId.startsWith('select_game_roles')) {
 			try {
 				// Différer la réponse pour avoir plus de temps de traitement
 				await interaction.deferReply({ ephemeral: true });
@@ -91,26 +92,32 @@ module.exports = {
 				logger.debug(`Rôles actuels: ${userRoles.join(', ')}`);
 				logger.debug(`Rôles sélectionnés: ${selectedRoleIds.join(', ')}`);
 
-				// Traiter chaque rôle de jeu
-				for (const roleId of gameRoles.keys()) {
-					// Si l'utilisateur a ce rôle mais qu'il n'est pas dans la sélection actuelle
-					if (interaction.member.roles.cache.has(roleId) && !selectedRoleIds.includes(roleId)) {
-						const role = interaction.guild.roles.cache.get(roleId);
-						if (role) {
-							logger.info(`Tentative de retrait du rôle ${role.name} (${roleId}) pour ${interaction.user.tag}`);
+				// Identifier quels rôles sont gérés par CE menu spécifique (pour ne pas retirer les rôles des autres menus)
+				const menuOptions = interaction.component.options.map(opt => opt.value);
 
-							try {
-								// Retirer le rôle et attendre que l'opération se termine
-								await interaction.member.roles.remove(roleId);
-								logger.info(`✅ Rôle ${role.name} retiré avec succès`);
-								rolesRemoved.push(role.name);
+				// Traiter chaque rôle de jeu
+				for (const [roleId, entry] of gameRoles.entries()) {
+					// Si le rôle est présent dans CE menu spécifique mais n'est pas sélectionné
+					if (menuOptions.includes(entry.nameSimplified) && !selectedRoleIds.includes(roleId)) {
+						// Si l'utilisateur a ce rôle, on le retire
+						if (interaction.member.roles.cache.has(roleId)) {
+							const role = interaction.guild.roles.cache.get(roleId);
+							if (role) {
+								logger.info(`Tentative de retrait du rôle ${role.name} (${roleId}) pour ${interaction.user.tag}`);
+
+								try {
+									// Retirer le rôle et attendre que l'opération se termine
+									await interaction.member.roles.remove(roleId);
+									logger.info(`✅ Rôle ${role.name} retiré avec succès`);
+									rolesRemoved.push(role.name);
+								}
+								catch (roleError) {
+									logger.error(`❌ Erreur lors du retrait du rôle ${role.name}:`, roleError);
+								}
 							}
-							catch (roleError) {
-								logger.error(`❌ Erreur lors du retrait du rôle ${role.name}:`, roleError);
+							else {
+								logger.warn(`Rôle ${roleId} introuvable dans le serveur`);
 							}
-						}
-						else {
-							logger.warn(`Rôle ${roleId} introuvable dans le serveur`);
 						}
 					}
 				}

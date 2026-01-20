@@ -165,16 +165,6 @@ module.exports = {
 				}
 			}
 
-			// TEST: Inject many mock associations
-			for (let i = 0; i < 50; i++) {
-				matches.push({
-					channel: { id: `channel_${i}`, name: `Channel ${i}` },
-					role: { id: `role_${i}`, name: `Role ${i}` },
-					cleanName: `Test ${i}`,
-					emoji: '🧪'
-				});
-			}
-
 			// Construire les embeds
 			const embeds = [];
 			const baseEmbed = {
@@ -190,12 +180,17 @@ module.exports = {
 				// Discord limits: 1024 characters per field value, 6000 total across all embeds in a message
 				const lines = text.split('\n');
 				let currentFieldValue = '';
+				let isFirstField = true;
 
 				for (const line of lines) {
 					if (!line) continue;
 					if ((currentFieldValue + line).length > 1000) {
-						currentEmbed.fields.push({ name: name + ' (suite)', value: currentFieldValue });
+						currentEmbed.fields.push({
+							name: isFirstField ? name : name + ' (suite)',
+							value: currentFieldValue
+						});
 						currentFieldValue = '';
+						isFirstField = false;
 
 						// Vérifier si l'embed actuel est trop plein (limite de 25 champs ou ~5000 caractères pour être sûr)
 						if (currentEmbed.fields.length >= 20) {
@@ -207,7 +202,10 @@ module.exports = {
 				}
 
 				if (currentFieldValue) {
-					currentEmbed.fields.push({ name: name, value: currentFieldValue });
+					currentEmbed.fields.push({
+						name: isFirstField ? name : name + ' (suite)',
+						value: currentFieldValue
+					});
 				}
 			};
 

@@ -131,13 +131,13 @@ async function updateRoleSelectionChannel(guild) {
 				// Générer les nouvelles options
 				const options = await generateRoleOptions(channelsData, guild.id);
 
-				// Créer un nouveau menu avec ces options
-				const newRow = await createRoleSelectionMenu(options);
+				// Créer les nouveaux menus avec ces options
+				const rows = createRoleSelectionMenu(options);
 
 				// Mettre à jour le message existant
 				await menuMessage.edit({
 					content: 'Liste des jeux disponibles :',
-					components: [newRow],
+					components: rows,
 				});
 
 				console.log(`Le menu de sélection dans ${roleSelectionChannel.name} a été mis à jour avec succès.`);
@@ -218,15 +218,22 @@ function createRoleSelectionMenu(options) {
 		label: 'Aucun jeu disponible',
 		value: 'no-games',
 	}];
-	const limitedOptions = validOptions.slice(0, 25);
-	const selectMenu = new StringSelectMenuBuilder()
-		.setCustomId('select_game_roles')
-		.setPlaceholder('Choisissez un ou plusieurs jeux')
-		.setMinValues(1)
-		.setMaxValues(limitedOptions.length)
-		.addOptions(limitedOptions);
 
-	return new ActionRowBuilder().addComponents(selectMenu);
+	const chunks = [];
+	for (let i = 0; i < validOptions.length; i += 25) {
+		chunks.push(validOptions.slice(i, i + 25));
+	}
+
+	return chunks.map((chunk, index) => {
+		const selectMenu = new StringSelectMenuBuilder()
+			.setCustomId(`select_game_roles_${index}`)
+			.setPlaceholder(chunks.length > 1 ? `Choisissez un ou plusieurs jeux (Partie ${index + 1})` : 'Choisissez un ou plusieurs jeux')
+			.setMinValues(0)
+			.setMaxValues(chunk.length)
+			.addOptions(chunk);
+
+		return new ActionRowBuilder().addComponents(selectMenu);
+	}).slice(0, 5); // Discord limit: 5 action rows per message
 }
 
 /**
@@ -251,8 +258,8 @@ async function publishSelectionMenu(channel, channelsData) {
 	}
 
 	try {
-		const row = createRoleSelectionMenu(options);
-		await channel.send({ content: 'Liste des jeux disponibles :', components: [row] });
+		const rows = createRoleSelectionMenu(options);
+		await channel.send({ content: 'Liste des jeux disponibles :', components: rows });
 	}
 	catch (menuError) {
 		const logger = require('./logger');
