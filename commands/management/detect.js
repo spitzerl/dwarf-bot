@@ -114,6 +114,9 @@ module.exports = {
 
 			// D'abord, marquer les channels et roles déjà suivis
 			for (const data of Object.values(channelsData)) {
+				// Filtrer par guilde : n'ignorer que ce qui appartient à CETTE guilde
+				if (data.guildId && data.guildId !== guild.id) continue;
+
 				if (data.idChannel) usedChannelIds.add(data.idChannel);
 				if (data.idRole) usedRoleIds.add(data.idRole);
 			}
@@ -122,7 +125,7 @@ module.exports = {
 			for (const [channelId, channel] of textChannels) {
 				// Ignorer si déjà suivi
 				if (usedChannelIds.has(channelId)) {
-					const existingData = Object.values(channelsData).find(d => d.idChannel === channelId);
+					const existingData = Object.values(channelsData).find(d => d.idChannel === channelId && (!d.guildId || d.guildId === guild.id));
 					if (existingData) {
 						alreadyTracked.push({
 							channel: channel,
@@ -256,6 +259,7 @@ module.exports = {
 									idChannel: match.channel.id,
 									idRole: match.role.id,
 									emoji: match.emoji,
+									guildId: guild.id, // Ajout du guildId
 								};
 
 								currentChannelsData[match.channel.id] = data;
@@ -320,6 +324,7 @@ module.exports = {
 						idChannel: match.channel.id,
 						idRole: match.role.id,
 						emoji: match.emoji,
+						guildId: guild.id, // Ajout du guildId
 					};
 
 					channelsData[match.channel.id] = data;

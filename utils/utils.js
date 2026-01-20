@@ -52,16 +52,24 @@ function setGuildsData(data) {
 }
 
 /**
- * Trouve le premier channel de type role_selection dans les données
+ * Trouve le channel de type role_selection pour une guilde spécifique
+ * @param {string} guildId - L'ID de la guilde
  * @param {Object} data - Les données des channels (optionnel, sinon utilise getChannelsData)
  * @returns {Object|null} - L'objet channel ou null si aucun trouvé
  */
-function findRoleSelectionChannel(data = null) {
-	const channelsData = data || getChannelsData();
+function findRoleSelectionChannel(guildId, data = null) {
+	const guildsData = getGuildsData();
+	const guildData = guildsData[guildId];
 
-	// Parcourir toutes les entrées pour trouver un channel de type role_selection
+	if (guildData && guildData.roleSelectionChannelId) {
+		const channelsData = data || getChannelsData();
+		return channelsData[guildData.roleSelectionChannelId] || null;
+	}
+
+	// Fallback: chercher dans channelsData si pas trouvé dans guilds.json (pour compatibilité)
+	const channelsData = data || getChannelsData();
 	for (const entry of Object.values(channelsData)) {
-		if (entry.type === 'role_selection' || (entry.selectChannel === true)) {
+		if ((entry.type === 'role_selection' || entry.selectChannel === true) && (!entry.guildId || entry.guildId === guildId)) {
 			return entry;
 		}
 	}
@@ -78,7 +86,7 @@ async function updateRoleSelectionChannel(guild) {
 	try {
 		// Récupérer les données et le channel de sélection
 		const channelsData = getChannelsData();
-		const roleSelectionChannelData = findRoleSelectionChannel(channelsData);
+		const roleSelectionChannelData = findRoleSelectionChannel(guild.id, channelsData);
 
 		if (!roleSelectionChannelData) {
 			console.log('Aucun channel de sélection de rôles trouvé.');
@@ -121,7 +129,7 @@ async function updateRoleSelectionChannel(guild) {
 			// Le message avec le menu existe, mettons-le à jour
 			try {
 				// Générer les nouvelles options
-				const options = await generateRoleOptions(channelsData);
+				const options = await generateRoleOptions(channelsData, guild.id);
 
 				// Créer un nouveau menu avec ces options
 				const newRow = await createRoleSelectionMenu(options);
@@ -170,11 +178,14 @@ async function updateRoleSelectionChannel(guild) {
 /**
  * Génère les options pour le menu de sélection de rôles
  * @param {Object} channelsData - Les données des channels
+ * @param {string} guildId - L'ID de la guilde
  * @returns {Array<Object>} - Les options pour le menu de sélection
  */
-function generateRoleOptions(channelsData) {
+function generateRoleOptions(channelsData, guildId) {
 	const options = [];
 	for (const entry of Object.values(channelsData)) {
+		// Filtrer par guildId (si présent) et exclure les channels de sélection eux-mêmes
+		if (entry.guildId && entry.guildId !== guildId) continue;
 		if (entry.selectChannel === true || entry.type === 'role_selection') continue;
 
 		const label = entry.name || entry.nameSimplified || 'Inconnu';
@@ -224,7 +235,7 @@ function createRoleSelectionMenu(options) {
  * @returns {Promise<void>}
  */
 async function publishSelectionMenu(channel, channelsData) {
-	const options = generateRoleOptions(channelsData);
+	const options = generateRoleOptions(channelsData, channel.guild.id);
 	const embed = new EmbedBuilder()
 		.setTitle('Sélection des rôles de jeux')
 		.setDescription(

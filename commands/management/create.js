@@ -111,6 +111,7 @@ module.exports = {
 				idChannel: channel.id,
 				idRole: role.id,
 				emoji: emoji, // Ajout de l'emoji dans le JSON
+				guildId: guild.id, // Ajout du guildId pour le support multi-serveur
 			};
 
 			channelsData[channel.id] = data;

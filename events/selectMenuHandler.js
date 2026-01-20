@@ -33,6 +33,9 @@ module.exports = {
 
 				// Parcourir toutes les entrées pour recenser les rôles existants
 				for (const entry of Object.values(channelsData)) {
+					// Filtrer par guildId (si présent)
+					if (entry.guildId && entry.guildId !== interaction.guildId) continue;
+
 					if (entry.idRole && !entry.selectChannel) {
 						gameRoles.set(entry.idRole, entry);
 					}

@@ -10,7 +10,9 @@ const {
 	setChannelsData,
 	generateRoleOptions,
 	createRoleSelectionMenu,
-	publishSelectionMenu
+	publishSelectionMenu,
+	getGuildsData,
+	setGuildsData
 } = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
 const logger = require('../../utils/logger');
@@ -106,7 +108,14 @@ module.exports = {
 					selectChannel: true,
 					type: 'role_selection', // Type spécifique pour les channels de sélection de rôles
 					emoji: '📋', // Emoji par défaut pour les channels de sélection
+					guildId: guild.id, // Ajout du guildId
 				};
+
+				// Enregistrer également dans guilds.json
+				const guildsData = getGuildsData();
+				if (!guildsData[guild.id]) guildsData[guild.id] = {};
+				guildsData[guild.id].roleSelectionChannelId = channel.id;
+				setGuildsData(guildsData);
 
 				channelsData[channel.id] = data;
 				setChannelsData(channelsData);
@@ -128,9 +137,9 @@ module.exports = {
 
 			// Si aucun channel n'est spécifié, chercher le channel de type role_selection
 			if (!channel) {
-				// Trouver le premier channel de type role_selection
+				// Trouver le channel de type role_selection pour CETTE guilde
 				const roleSelectionChannel = Object.values(channelsData).find(
-					entry => entry.type === 'role_selection' || entry.selectChannel === true,
+					entry => (entry.type === 'role_selection' || entry.selectChannel === true) && entry.guildId === guild.id,
 				);
 
 				if (!roleSelectionChannel) {
@@ -174,6 +183,13 @@ module.exports = {
 				delete channelsData[channel.id];
 				setChannelsData(channelsData);
 
+				// Supprimer de guilds.json
+				const guildsData = getGuildsData();
+				if (guildsData[guild.id] && guildsData[guild.id].roleSelectionChannelId === channel.id) {
+					delete guildsData[guild.id].roleSelectionChannelId;
+					setGuildsData(guildsData);
+				}
+
 				return interaction.reply({
 					content: `Le channel de sélection ${channel.name} a été supprimé avec succès.`,
 					ephemeral: true,
@@ -192,9 +208,9 @@ module.exports = {
 			let channel = null;
 			let channelData = null;
 
-			// Trouver le premier channel de type role_selection
+			// Trouver le channel de type role_selection pour CETTE guilde
 			const roleSelectionChannel = Object.values(channelsData).find(
-				entry => entry.type === 'role_selection' || entry.selectChannel === true,
+				entry => (entry.type === 'role_selection' || entry.selectChannel === true) && entry.guildId === guild.id,
 			);
 
 			if (!roleSelectionChannel) {
