@@ -18,7 +18,7 @@ const {
 	setGuildsData,
 	updateRoleSelectionChannel
 } = require('../../utils/utils');
-const { toKebabCase } = require('../../utils/stringFormatter');
+const { toKebabCase, extractEmoji, extractCleanName } = require('../../utils/stringFormatter');
 const logger = require('../../utils/logger');
 const { logAction } = require('../../utils/discordLogger');
 const { sanitizeString, isValidDiscordName } = require('../../utils/validator');
@@ -76,6 +76,7 @@ module.exports = {
 					option
 						.setName('channel')
 						.setDescription('Le salon à associer')
+						.setRequired(true)
 						.addChannelTypes(ChannelType.GuildText),
 				)
 				.addRoleOption(option =>
@@ -399,8 +400,11 @@ module.exports = {
 		else if (subcommand === 'associate') {
 			const channel = interaction.options.getChannel('channel');
 			const role = interaction.options.getRole('role');
-			const displayName = interaction.options.getString('display_name') || channel.name;
-			const emoji = interaction.options.getString('emoji') || '🟩';
+			const rawDisplayName = interaction.options.getString('display_name') || channel.name;
+
+			// Si le nom contient déjà un emoji/séparateur, on les extrait
+			const displayName = extractCleanName(rawDisplayName);
+			const emoji = interaction.options.getString('emoji') || extractEmoji(rawDisplayName) || '🟩';
 
 			await interaction.deferReply({ ephemeral: true });
 
@@ -506,13 +510,15 @@ module.exports = {
 				// Sync Channel
 				const channel = await guild.channels.fetch(assoc.idChannel).catch(() => null);
 				if (channel) {
-					// Discord kebab-case normalization for comparison
-					const normalizedTarget = toKebabCase(assoc.name);
-					// On ne peut pas comparer facilement le nom avec emoji via normalization Discord,
-					// on force le renommage si ce n'est pas EXACTEMENT ce qu'on veut (ou presque)
-					if (channel.name !== targetName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')) {
-						await channel.setName(targetName).catch(err => logger.error(`Sync channel error: ${err}`));
+					// We force the update to be sure Discord applies its normalization consistently
+					// but we only do it if the name looks significantly different or to be safe.
+					// Discord normalization is hard to predict exactly with emojis/special chars.
+					try {
+						await channel.setName(targetName);
 						updatedThis = true;
+					}
+					catch (err) {
+						logger.error(`Sync channel error for ${assoc.name}: ${err}`);
 					}
 				}
 
@@ -520,8 +526,13 @@ module.exports = {
 				if (assoc.idRole) {
 					const role = await guild.roles.fetch(assoc.idRole).catch(() => null);
 					if (role && role.name !== targetName) {
-						await role.setName(targetName).catch(err => logger.error(`Sync role error: ${err}`));
-						updatedThis = true;
+						try {
+							await role.setName(targetName);
+							updatedThis = true;
+						}
+						catch (err) {
+							logger.error(`Sync role error for ${assoc.name}: ${err}`);
+						}
 					}
 				}
 
@@ -534,14 +545,19 @@ module.exports = {
 			const embed = {
 				title: '🔄 Harmonisation terminée',
 				description: updatedCount > 0
-					? `${updatedCount} association(s) ont été mises à jour avec le format \`Emoji・Nom\`.`
-					: 'Toutes les associations sont déjà à jour.',
+					? `${updatedCount} association(s) ont été traitées avec le format \`Emoji・Nom\`.`
+					: 'Toutes les associations sont déjà à jour ou aucune modification n\'était nécessaire.',
 				color: 0x2ECC71,
 				timestamp: new Date().toISOString(),
 			};
 
 			if (details.length > 0) {
-				embed.fields = [{ name: 'Détails', value: details.join('\n').substring(0, 1024) }];
+				// Limite de 1024 caractères pour la valeur d'un champ
+				let detailsValue = details.join('\n');
+				if (detailsValue.length > 1024) {
+					detailsValue = detailsValue.substring(0, 1021) + '...';
+				}
+				embed.fields = [{ name: 'Détails', value: detailsValue }];
 			}
 
 			await logAction(guild, {

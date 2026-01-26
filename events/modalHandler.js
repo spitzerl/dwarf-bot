@@ -1,6 +1,6 @@
 const { Events } = require('discord.js');
 const { getChannelsData, setChannelsData, updateRoleSelectionChannel } = require('../utils/utils');
-const { toKebabCase } = require('../utils/stringFormatter');
+const { toKebabCase, extractEmoji, extractCleanName } = require('../utils/stringFormatter');
 const logger = require('../utils/logger');
 const { logAction } = require('../utils/discordLogger');
 
@@ -15,11 +15,15 @@ module.exports = {
             await interaction.deferReply({ ephemeral: true });
 
             try {
-                const displayName = interaction.fields.getTextInputValue('display_name');
+                const rawDisplayName = interaction.fields.getTextInputValue('display_name');
                 const channelName = interaction.fields.getTextInputValue('channel_name');
                 const roleName = interaction.fields.getTextInputValue('role_name');
-                const emoji = interaction.fields.getTextInputValue('emoji');
+                const rawEmoji = interaction.fields.getTextInputValue('emoji');
                 const roleColor = interaction.fields.getTextInputValue('role_color');
+
+                // Extraire proprement si l'utilisateur a tout mis dans le champ nom
+                const displayName = extractCleanName(rawDisplayName);
+                const emoji = rawEmoji || extractEmoji(rawDisplayName) || '🟩';
 
                 const channelsData = getChannelsData();
                 const channelData = channelsData[channelId];

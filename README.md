@@ -71,13 +71,20 @@ Duplicate the `.env.example` file to `.env` and fill in your credentials:
 | :--- | :--- | :--- |
 | `/create` | Management | Creates a text channel and its associated role. |
 | `/delete` | Management | Deletes a channel and its role. |
-| `/role_channel` | Management | Manages the self-service role selection menu. |
+| `/role_channel create` | Management | Creates a selection channel. |
+| `/role_channel edit` | Management | Edits association details (Modal popup). |
+| `/role_channel associate` | Management | Manually links a channel and a role. |
+| `/role_channel list` | Management | Lists all role-channel associations. |
+| `/role_channel sync` | Management | Bulk syncs names to `Emoji・Name` format. |
+| `/role_channel update` | Management | Refreshes the role selection menu. |
 | `/detect` | Management | Scans and maps existing roles/channels. |
-| `/logs` | Management | Configures the log channel for the current server. |
-| `/reload` | System | Reloads a specific command file. |
-| `/ping` | Common | Checks the bot's latency. |
-| `/server` | Common | Displays information about the server. |
-| `/user` | Common | Displays information about a user. |
+| `/check roles` | Management | Finds roles without associated channels. |
+| `/check channels` | Management | Finds channels without associated roles. |
+| `/logs` | Management | Configures the server's log channel. |
+| `/reload` | System | Reloads a command file. |
+| `/ping` | Common | Checks bot latency. |
+| `/server` | Common | Server information. |
+| `/user` | Common | User information. |
 
 ---
 
