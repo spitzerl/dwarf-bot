@@ -76,7 +76,6 @@ module.exports = {
 					option
 						.setName('channel')
 						.setDescription('Le salon à associer')
-						.setRequired(true)
 						.addChannelTypes(ChannelType.GuildText),
 				)
 				.addRoleOption(option =>
@@ -97,6 +96,16 @@ module.exports = {
 						.setDescription('Emoji pour l\'association (optionnel)')
 						.setRequired(false),
 				),
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('list')
+				.setDescription('Affiche la liste de toutes les associations enregistrées'),
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('sync')
+				.setDescription('Harmonise les noms des salons et des rôles (Emoji + Nom)'),
 		),
 
 	async execute(interaction) {
@@ -445,6 +454,104 @@ module.exports = {
 					content: 'Une erreur est survenue lors de la création de l\'association.',
 				});
 			}
+		}
+		// COMMANDE LIST - Affichage des associations
+		else if (subcommand === 'list') {
+			await interaction.deferReply();
+
+			const guildAssociations = Object.values(channelsData).filter(d => d.guildId === guild.id && !d.selectChannel);
+
+			if (guildAssociations.length === 0) {
+				return interaction.editReply({ content: 'Aucune association enregistrée sur ce serveur.' });
+			}
+
+			const embed = {
+				title: `📋 Associations enregistrées (${guildAssociations.length})`,
+				color: 0x3498DB,
+				timestamp: new Date().toISOString(),
+				fields: [],
+			};
+
+			// Grouper par 25 (limite fields Discord)
+			let associationText = '';
+			for (const assoc of guildAssociations) {
+				const line = `• ${assoc.emoji} **${assoc.name}** : <#${assoc.idChannel}> ↔ <@&${assoc.idRole}>\n`;
+				if ((associationText + line).length > 1024) {
+					embed.fields.push({ name: 'Associations', value: associationText });
+					associationText = line;
+				}
+				else {
+					associationText += line;
+				}
+			}
+
+			if (associationText) {
+				embed.fields.push({ name: 'Associations', value: associationText });
+			}
+
+			return interaction.editReply({ embeds: [embed] });
+		}
+		// COMMANDE SYNC - Harmonisation globale
+		else if (subcommand === 'sync') {
+			await interaction.deferReply();
+
+			const guildAssociations = Object.values(channelsData).filter(d => d.guildId === guild.id && !d.selectChannel);
+			let updatedCount = 0;
+			const details = [];
+
+			for (const assoc of guildAssociations) {
+				const targetName = `${assoc.emoji}・${assoc.name}`;
+				let updatedThis = false;
+
+				// Sync Channel
+				const channel = await guild.channels.fetch(assoc.idChannel).catch(() => null);
+				if (channel) {
+					// Discord kebab-case normalization for comparison
+					const normalizedTarget = toKebabCase(assoc.name);
+					// On ne peut pas comparer facilement le nom avec emoji via normalization Discord,
+					// on force le renommage si ce n'est pas EXACTEMENT ce qu'on veut (ou presque)
+					if (channel.name !== targetName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')) {
+						await channel.setName(targetName).catch(err => logger.error(`Sync channel error: ${err}`));
+						updatedThis = true;
+					}
+				}
+
+				// Sync Role
+				if (assoc.idRole) {
+					const role = await guild.roles.fetch(assoc.idRole).catch(() => null);
+					if (role && role.name !== targetName) {
+						await role.setName(targetName).catch(err => logger.error(`Sync role error: ${err}`));
+						updatedThis = true;
+					}
+				}
+
+				if (updatedThis) {
+					updatedCount++;
+					details.push(`• **${assoc.name}** synchronisé.`);
+				}
+			}
+
+			const embed = {
+				title: '🔄 Harmonisation terminée',
+				description: updatedCount > 0
+					? `${updatedCount} association(s) ont été mises à jour avec le format \`Emoji・Nom\`.`
+					: 'Toutes les associations sont déjà à jour.',
+				color: 0x2ECC71,
+				timestamp: new Date().toISOString(),
+			};
+
+			if (details.length > 0) {
+				embed.fields = [{ name: 'Détails', value: details.join('\n').substring(0, 1024) }];
+			}
+
+			await logAction(guild, {
+				title: 'Synchronisation Bulk Effectuée',
+				description: `L'utilisateur <@${interaction.user.id}> a lancé une harmonisation globale des noms.`,
+				color: 0x2ECC71,
+				fields: [{ name: 'Modifications', value: `${updatedCount} associations traitées.` }],
+			});
+
+			return interaction.editReply({ embeds: [embed] });
 		}
 	},
 };
