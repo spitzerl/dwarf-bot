@@ -60,14 +60,19 @@ module.exports = {
 
 			// --- LOGGING ACTION ---
 			if (command.category === 'management') {
+				const { formatOptions } = require('../utils/discordLogger');
+				const optionsDetails = formatOptions(interaction);
+
 				await logAction(interaction.guild, {
-					title: `Commande Exécutée: ${command.data.name}`,
-					description: `L'utilisateur <@${interaction.user.id}> a exécuté la commande \`/${command.data.name}\`.`,
+					title: `🛠️ Commande: /${command.data.name}`,
+					description: `L'utilisateur <@${interaction.user.id}> a exécuté une commande de gestion.`,
 					status: 'success',
-					color: 0x2ECC71,
+					color: 0x3498DB,
+					user: interaction.user,
 					fields: [
-						{ name: 'Utilisateur', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
-						{ name: 'Salon', value: `<#${interaction.channel.id}>`, inline: true },
+						{ name: '👤 Utilisateur', value: `${interaction.user.tag}`, inline: true },
+						{ name: '📍 Salon', value: `<#${interaction.channel.id}>`, inline: true },
+						{ name: '📝 Détails', value: optionsDetails.substring(0, 1024) },
 					],
 				});
 			}
@@ -77,13 +82,18 @@ module.exports = {
 
 			// Log failure to Discord
 			if (command.category === 'management') {
+				const { formatOptions } = require('../utils/discordLogger');
+				const optionsDetails = formatOptions(interaction);
+
 				await logAction(interaction.guild, {
-					title: `Échec de commande: ${command.data.name}`,
-					description: `Une erreur est survenue lors de l'exécution de \`/${command.data.name}\`.`,
+					title: `❌ Échec: /${command.data.name}`,
+					description: `Une erreur est survenue lors de l'exécution d'une commande de gestion.`,
 					status: 'error',
 					color: 0xE74C3C,
+					user: interaction.user,
 					fields: [
-						{ name: 'Erreur', value: error.message || 'Erreur inconnue' },
+						{ name: 'Erreur', value: `\`\`\`${error.message || 'Erreur inconnue'}\`\`\`` },
+						{ name: '📝 Détails', value: optionsDetails.substring(0, 1024) },
 					],
 				});
 			}

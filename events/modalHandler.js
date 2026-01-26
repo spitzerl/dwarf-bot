@@ -74,6 +74,7 @@ module.exports = {
                     title: 'Association Modifiée',
                     description: `L'association pour <#${channelId}> a été modifiée par <@${interaction.user.id}>.`,
                     color: 0x3498DB,
+                    user: interaction.user,
                     fields: [
                         { name: 'Nom', value: displayName, inline: true },
                         { name: 'Emoji', value: emoji, inline: true },

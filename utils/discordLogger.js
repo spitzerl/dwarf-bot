@@ -24,8 +24,9 @@ module.exports = {
      * Logs an event to the local server log channel and the master log channel.
      * @param {import('discord.js').Guild} guild 
      * @param {Object} data 
+     * @param {import('discord.js').User} [data.user] - Optional user who triggered the action
      */
-    async logAction(guild, { title, description, color = 0x3498DB, fields = [], status = 'info' }) {
+    async logAction(guild, { title, description, color = 0x3498DB, fields = [], status = 'info', user = null }) {
         logger.debug(`logAction called for ${title} in guild ${guild.id}`);
 
         const embed = new EmbedBuilder()
@@ -34,7 +35,14 @@ module.exports = {
             .setColor(color)
             .addFields(fields)
             .setTimestamp()
-            .setFooter({ text: `Guild: ${guild.name} (${guild.id})` });
+            .setFooter({
+                text: `${guild.name}`,
+                iconURL: guild.iconURL()
+            });
+
+        if (user) {
+            embed.setThumbnail(user.displayAvatarURL());
+        }
 
         // 1. Local Logging
         try {
@@ -104,5 +112,34 @@ module.exports = {
 
         // 3. Logger entry (Always happens)
         logger.info(`Action Logged: ${title} in guild ${guild.id}`, { status, description, fields });
+    },
+
+    /**
+     * Formate les options d'une interaction en une chaîne lisible avec mentions.
+     * @param {import('discord.js').ChatInputCommandInteraction} interaction 
+     * @returns {string} les options formattées
+     */
+    formatOptions(interaction) {
+        const options = interaction.options.data;
+        if (!options || options.length === 0) return 'Aucune option';
+
+        const parseOption = (opt) => {
+            if (opt.type === 1 || opt.type === 2) { // SUB_COMMAND or SUB_COMMAND_GROUP
+                const subName = opt.name;
+                const subOptions = opt.options?.map(parseOption).join('\n') || '';
+                return `**Sub:** \`${subName}\`\n${subOptions}`;
+            }
+
+            let value = opt.value;
+            // Types Discord: 6=USER, 7=CHANNEL, 8=ROLE, 9=MENTIONABLE
+            if (opt.type === 6) value = `<@${opt.value}>`;
+            if (opt.type === 7) value = `<#${opt.value}>`;
+            if (opt.type === 8) value = `<@&${opt.value}>`;
+            if (opt.type === 9) value = `<@${opt.value}>`; // Simplified mentionable as user
+
+            return `• **${opt.name}**: ${value}`;
+        };
+
+        return options.map(parseOption).join('\n');
     },
 };

@@ -47,14 +47,6 @@ module.exports = {
                 content: `Le salon de logs a été défini sur <#${channel.id}>.`,
                 ephemeral: true
             });
-
-            // Log this action
-            await logAction(interaction.guild, {
-                title: 'Configuration des logs mise à jour',
-                description: `Le salon de logs a été défini sur <#${channel.id}> par <@${interaction.user.id}>.`,
-                status: 'success',
-                color: 0x3498DB
-            });
         }
         else if (subcommand === 'show') {
             const channelId = guildsData[guildId]?.localLogChannelId;

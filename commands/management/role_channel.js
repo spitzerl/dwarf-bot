@@ -435,18 +435,8 @@ module.exports = {
 				// Mettre à jour le menu
 				await updateRoleSelectionChannel(guild);
 
-				// Log
-				await logAction(guild, {
-					title: 'Association Manuelle Créée',
-					description: `L'utilisateur <@${interaction.user.id}> a manuellement associé un salon et un rôle.`,
-					color: 0x2ECC71,
-					fields: [
-						{ name: 'Nom', value: displayName, inline: true },
-						{ name: 'Salon', value: `<#${channel.id}>`, inline: true },
-						{ name: 'Rôle', value: `<@&${role.id}>`, inline: true },
-						{ name: 'Emoji', value: emoji, inline: true },
-					],
-				});
+				// Mettre à jour le menu
+				await updateRoleSelectionChannel(guild);
 
 				return interaction.editReply({
 					content: `L'association entre <#${channel.id}> et <@&${role.id}> a été créée avec succès !`,
@@ -510,9 +500,6 @@ module.exports = {
 				// Sync Channel
 				const channel = await guild.channels.fetch(assoc.idChannel).catch(() => null);
 				if (channel) {
-					// We force the update to be sure Discord applies its normalization consistently
-					// but we only do it if the name looks significantly different or to be safe.
-					// Discord normalization is hard to predict exactly with emojis/special chars.
 					try {
 						await channel.setName(targetName);
 						updatedThis = true;
@@ -552,20 +539,12 @@ module.exports = {
 			};
 
 			if (details.length > 0) {
-				// Limite de 1024 caractères pour la valeur d'un champ
 				let detailsValue = details.join('\n');
 				if (detailsValue.length > 1024) {
 					detailsValue = detailsValue.substring(0, 1021) + '...';
 				}
 				embed.fields = [{ name: 'Détails', value: detailsValue }];
 			}
-
-			await logAction(guild, {
-				title: 'Synchronisation Bulk Effectuée',
-				description: `L'utilisateur <@${interaction.user.id}> a lancé une harmonisation globale des noms.`,
-				color: 0x2ECC71,
-				fields: [{ name: 'Modifications', value: `${updatedCount} associations traitées.` }],
-			});
 
 			return interaction.editReply({ embeds: [embed] });
 		}
