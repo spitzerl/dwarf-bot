@@ -4,6 +4,9 @@ const {
 	ChannelType,
 	ActionRowBuilder,
 	StringSelectMenuBuilder,
+	ModalBuilder,
+	TextInputBuilder,
+	TextInputStyle,
 } = require('discord.js');
 const {
 	getChannelsData,
@@ -51,6 +54,48 @@ module.exports = {
 			subcommand
 				.setName('update')
 				.setDescription('Force la mise à jour de la liste des jeux dans le channel de sélection de rôles'),
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('edit')
+				.setDescription('Ouvre une fenêtre pour modifier les détails d\'une association')
+				.addChannelOption(option =>
+					option
+						.setName('channel')
+						.setDescription('Le salon associé à modifier')
+						.setRequired(true)
+						.addChannelTypes(ChannelType.GuildText),
+				),
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('associate')
+				.setDescription('Associe manuellement un salon et un rôle')
+				.addChannelOption(option =>
+					option
+						.setName('channel')
+						.setDescription('Le salon à associer')
+						.setRequired(true)
+						.addChannelTypes(ChannelType.GuildText),
+				)
+				.addRoleOption(option =>
+					option
+						.setName('role')
+						.setDescription('Le rôle à associer')
+						.setRequired(true),
+				)
+				.addStringOption(option =>
+					option
+						.setName('display_name')
+						.setDescription('Nom d\'affichage (optionnel)')
+						.setRequired(false),
+				)
+				.addStringOption(option =>
+					option
+						.setName('emoji')
+						.setDescription('Emoji pour l\'association (optionnel)')
+						.setRequired(false),
+				),
 		),
 
 	async execute(interaction) {
@@ -206,7 +251,6 @@ module.exports = {
 		// COMMANDE UPDATE - Mise à jour forcée d'un channel de sélection
 		else if (subcommand === 'update') {
 			let channel = null;
-			let channelData = null;
 
 			// Trouver le channel de type role_selection pour CETTE guilde
 			const roleSelectionChannel = Object.values(channelsData).find(
@@ -228,9 +272,6 @@ module.exports = {
 					ephemeral: true,
 				});
 			}
-
-			// eslint-disable-next-line no-unused-vars
-			channelData = roleSelectionChannel;
 
 			try {
 				// Supprimer les anciens messages
@@ -260,6 +301,147 @@ module.exports = {
 				logger.error('Erreur lors de la mise à jour du channel de sélection:', error);
 				return interaction.editReply({
 					content: 'Une erreur est survenue lors de la mise à jour du channel.',
+				});
+			}
+		}
+		// COMMANDE EDIT - Ouverture d'un modal pour modifier l'association
+		else if (subcommand === 'edit') {
+			const channelInput = interaction.options.getChannel('channel');
+			const channelData = channelsData[channelInput.id];
+
+			if (!channelData) {
+				return interaction.reply({
+					content: 'Ce salon n\'est pas enregistré comme une association de jeu.',
+					ephemeral: true,
+				});
+			}
+
+			// Récupérer le rôle associé (si présent)
+			let roleName = '';
+			let roleColor = '';
+			if (channelData.idRole) {
+				const role = await guild.roles.fetch(channelData.idRole).catch(() => null);
+				if (role) {
+					roleName = role.name;
+					roleColor = role.hexColor;
+				}
+			}
+
+			// Créer le Modal
+			const modal = new ModalBuilder()
+				.setCustomId(`edit_assoc_${channelInput.id}`)
+				.setTitle(`Éditer : ${channelData.name}`);
+
+			// Champ 1 : Nom d'affichage (pour la DB et le menu)
+			const displayNameInput = new TextInputBuilder()
+				.setCustomId('display_name')
+				.setLabel('Nom d\'affichage (Database/Menu)')
+				.setStyle(TextInputStyle.Short)
+				.setValue(channelData.name || '')
+				.setRequired(true);
+
+			// Champ 2 : Nom du Salon (Discord)
+			const channelNameInput = new TextInputBuilder()
+				.setCustomId('channel_name')
+				.setLabel('Nom du Salon (Discord)')
+				.setStyle(TextInputStyle.Short)
+				.setValue(channelInput.name)
+				.setRequired(true);
+
+			// Champ 3 : Nom du Rôle (Discord)
+			const roleNameInput = new TextInputBuilder()
+				.setCustomId('role_name')
+				.setLabel('Nom du Rôle (Discord)')
+				.setStyle(TextInputStyle.Short)
+				.setValue(roleName)
+				.setRequired(false);
+
+			// Champ 4 : Emoji
+			const emojiInput = new TextInputBuilder()
+				.setCustomId('emoji')
+				.setLabel('Emoji')
+				.setStyle(TextInputStyle.Short)
+				.setValue(channelData.emoji || '🟩')
+				.setRequired(true);
+
+			// Champ 5 : Couleur du rôle (Hex)
+			const roleColorInput = new TextInputBuilder()
+				.setCustomId('role_color')
+				.setLabel('Couleur du Rôle (Ex: #ff0000)')
+				.setStyle(TextInputStyle.Short)
+				.setValue(roleColor)
+				.setPlaceholder('#ffffff')
+				.setRequired(false);
+
+			// Ajouter les composants au modal
+			modal.addComponents(
+				new ActionRowBuilder().addComponents(displayNameInput),
+				new ActionRowBuilder().addComponents(channelNameInput),
+				new ActionRowBuilder().addComponents(roleNameInput),
+				new ActionRowBuilder().addComponents(emojiInput),
+				new ActionRowBuilder().addComponents(roleColorInput),
+			);
+
+			// Afficher le modal
+			await interaction.showModal(modal);
+		}
+		// COMMANDE ASSOCIATE - Association manuelle
+		else if (subcommand === 'associate') {
+			const channel = interaction.options.getChannel('channel');
+			const role = interaction.options.getRole('role');
+			const displayName = interaction.options.getString('display_name') || channel.name;
+			const emoji = interaction.options.getString('emoji') || '🟩';
+
+			await interaction.deferReply({ ephemeral: true });
+
+			try {
+				// Vérifier si déjà associé
+				if (channelsData[channel.id]) {
+					return interaction.editReply({ content: `Le salon <#${channel.id}> est déjà associé.` });
+				}
+
+				const alreadyAssocRole = Object.values(channelsData).find(d => d.idRole === role.id && d.guildId === guild.id);
+				if (alreadyAssocRole) {
+					return interaction.editReply({ content: `Le rôle <@&${role.id}> est déjà associé à <#${alreadyAssocRole.idChannel}>.` });
+				}
+
+				// Enregistrer
+				const nameSimplified = toKebabCase(displayName);
+				channelsData[channel.id] = {
+					name: displayName,
+					nameSimplified: nameSimplified,
+					idChannel: channel.id,
+					idRole: role.id,
+					emoji: emoji,
+					guildId: guild.id,
+				};
+
+				setChannelsData(channelsData);
+
+				// Mettre à jour le menu
+				await updateRoleSelectionChannel(guild);
+
+				// Log
+				await logAction(guild, {
+					title: 'Association Manuelle Créée',
+					description: `L'utilisateur <@${interaction.user.id}> a manuellement associé un salon et un rôle.`,
+					color: 0x2ECC71,
+					fields: [
+						{ name: 'Nom', value: displayName, inline: true },
+						{ name: 'Salon', value: `<#${channel.id}>`, inline: true },
+						{ name: 'Rôle', value: `<@&${role.id}>`, inline: true },
+						{ name: 'Emoji', value: emoji, inline: true },
+					],
+				});
+
+				return interaction.editReply({
+					content: `L'association entre <#${channel.id}> et <@&${role.id}> a été créée avec succès !`,
+				});
+			}
+			catch (error) {
+				logger.error('Erreur lors de l\'association manuelle:', error);
+				return interaction.editReply({
+					content: 'Une erreur est survenue lors de la création de l\'association.',
 				});
 			}
 		}
