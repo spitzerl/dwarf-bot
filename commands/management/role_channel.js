@@ -15,7 +15,8 @@ const {
 	createRoleSelectionMenu,
 	publishSelectionMenu,
 	getGuildsData,
-	setGuildsData
+	setGuildsData,
+	updateRoleSelectionChannel
 } = require('../../utils/utils');
 const { toKebabCase } = require('../../utils/stringFormatter');
 const logger = require('../../utils/logger');
